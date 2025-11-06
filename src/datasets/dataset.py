@@ -17,6 +17,7 @@ class MainDataset(BaseDataset):
         data_root,
         name="train", 
         index_dir=None,
+        dataset_path="https://disk.360.yandex.ru/d/9k_k6G6a03GURg",
         *args, 
         **kwargs
     ):
@@ -25,13 +26,15 @@ class MainDataset(BaseDataset):
             data_root (str): path to dataset dir
             name (str): partition name
             index_dir (str): path to index dir (convenient for kaggle as their dataset section is ronly)
+            dataset_path (str): can be path or url. If dataset_path is not URL nor None data_root is changed to dataset_path automatically.
         """
-        data_root = Path(data_root)
+        self.data_root = Path(data_root)
         if index_dir is None:
             index_dir = data_root
         else:
             index_dir = Path(index_dir)
-        index_path = index_dir / name / "index.json" if data_root is not None else data_root
+        index_path = index_dir if index_dir is not None else self.data_root
+        index_path = index_path / name / "index.json"
 
         # each nested dataset class must have an index field that
         # contains list of dicts. Each dict contains information about
@@ -40,15 +43,14 @@ class MainDataset(BaseDataset):
             index = read_json(index_path)
         else:
             os.makedirs(str(index_path.parent), exist_ok=True)
-            index = self._create_index(name, index_path)
+            index = self._create_index(name, index_path, dataset_path)
 
         super().__init__(index, *args, **kwargs)
 
     def _create_index(self, 
                       name, 
-                      index_path, 
-                      data_root,
-                      dataset_path = "https://disk.360.yandex.ru/d/9k_k6G6a03GURg"):
+                      index_path,
+                      dataset_path):
         """
         Create index for the dataset. The function processes dataset metadata
         and utilizes it to get information dict for each element of
@@ -63,20 +65,23 @@ class MainDataset(BaseDataset):
                 such as label and object path.
         """
         index = []
-        output_path = data_root / "dla_dataset.zip"
-        y = yadisk.Client()
+        if dataset_path is not None and dataset_path.startswith("http"):
+            output_path = self.data_root / "dla_dataset.zip"
+            y = yadisk.Client()
 
-        print("Downloading ZIP from Yandex.Disk...")
-        y.download_public(dataset_path, output_path)
+            print("Downloading ZIP from Yandex.Disk...")
+            y.download_public(dataset_path, output_path)
 
-        with zipfile.ZipFile(output_path, 'r') as zip_ref:
-            zip_ref.extractall(str(data_root))
+            with zipfile.ZipFile(output_path, 'r') as zip_ref:
+                zip_ref.extractall(str(self.data_root))
         
-        os.remove(output_path)
+            os.remove(output_path)
+        elif dataset_path is not None:
+            self.data_root = dataset_path
 
 
-        audio_path = data_root / "dla_dataset" / "audio" / name 
-        mouths_path  =  data_root / "dla_dataset" / "mouths"
+        audio_path = self.data_root / "dla_dataset" / "audio" / name 
+        mouths_path  =  self.data_root / "dla_dataset" / "mouths"
         
 
         for item in tqdm((audio_path / "mix").iterdir()):
