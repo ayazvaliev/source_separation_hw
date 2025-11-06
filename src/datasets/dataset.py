@@ -17,7 +17,7 @@ class MainDataset(BaseDataset):
         data_root,
         name="train", 
         index_dir=None,
-        dataset_path="https://disk.360.yandex.ru/d/9k_k6G6a03GURg",
+        dataset_url="https://disk.360.yandex.ru/d/9k_k6G6a03GURg",
         *args, 
         **kwargs
     ):
@@ -26,7 +26,7 @@ class MainDataset(BaseDataset):
             data_root (str): path to dataset dir
             name (str): partition name
             index_dir (str): path to index dir (convenient for kaggle as their dataset section is ronly)
-            dataset_path (str): can be path or url. If dataset_path is not URL nor None data_root is changed to dataset_path automatically.
+            dataset_url (str): URL to dataset.
         """
         self.data_root = Path(data_root)
         if index_dir is None:
@@ -43,14 +43,14 @@ class MainDataset(BaseDataset):
             index = read_json(index_path)
         else:
             os.makedirs(str(index_path.parent), exist_ok=True)
-            index = self._create_index(name, index_path, dataset_path)
+            index = self._create_index(name, index_path, dataset_url)
 
         super().__init__(index, *args, **kwargs)
 
     def _create_index(self, 
                       name, 
                       index_path,
-                      dataset_path):
+                      dataset_url):
         """
         Create index for the dataset. The function processes dataset metadata
         and utilizes it to get information dict for each element of
@@ -65,20 +65,19 @@ class MainDataset(BaseDataset):
                 such as label and object path.
         """
         index = []
-        if dataset_path is not None and dataset_path.startswith("http"):
+        if dataset_url is not None and dataset_url.startswith("http"):
             output_path = self.data_root / "dla_dataset.zip"
             y = yadisk.Client()
 
             print("Downloading ZIP from Yandex.Disk...")
-            y.download_public(dataset_path, output_path)
+            y.download_public(dataset_url, output_path)
 
             with zipfile.ZipFile(output_path, 'r') as zip_ref:
                 zip_ref.extractall(str(self.data_root))
         
             os.remove(output_path)
-        elif dataset_path is not None:
-            self.data_root = dataset_path
-
+        elif not dataset_url.startswith("http"):
+            raise RuntimeError("dataset path must be either URL or None")
 
         audio_path = self.data_root / "dla_dataset" / "audio" / name 
         mouths_path  =  self.data_root / "dla_dataset" / "mouths"
