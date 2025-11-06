@@ -27,13 +27,13 @@ train:
         convolve_mode: full
         compensate_for_propagation_delay: False
         p: 0.5
-       - _target_: src.transforms.wav_augs.BackgroundNoise
-         sample_rate: 16000
-         output_type: tensor
-         background_paths: ${aug_dir}/noise
-         min_snr_in_db: 5
-         max_snr_in_db: 20
-         p: 0.5
+      - _target_: src.transforms.wav_augs.BackgroundNoise
+        sample_rate: 16000
+        output_type: tensor
+        background_paths: ${aug_dir}/noise
+        min_snr_in_db: 5
+        max_snr_in_db: 20
+        p: 0.5
 
   spectrogram_mix:
     _target_: torchvision.transforms.v2.Compose
