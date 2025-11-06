@@ -1,0 +1,14 @@
+preprocessing_methods: #features we extract for dataset getitem
+  get_melspectogramm:
+    _target_: torchaudio.transforms.MelSpectrogram
+    sample_rate: 16000
+    n_fft: 1024
+    hop_length: 256
+    n_mels: 64
+    power: 2.0
+  
+  get_stft: 
+    _target_: torchaudio.transforms.Spectrogram
+    n_fft: 1024
+    hop_length: 256
+    power: 1.0

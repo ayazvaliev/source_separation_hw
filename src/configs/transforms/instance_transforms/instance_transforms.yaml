@@ -1,0 +1,50 @@
+train:
+  get_spectrogram: # возвращает мелспеку в формате [channels, freq, time]
+    _target_: src.transforms.LogMelSpecTransform
+    sample_rate: 16000
+    n_fft: 400
+    win_length: 400
+    hop_length: 160
+    n_mels: 80
+    top_db: 80
+    power: 2.0
+
+  # Накидал дефолтных wav аугментаций из torch audiomentations, чтоб понятно было как юзать
+  # Ссылку на каггловский датасет с аугами скину в тг :D
+  audio_mix: 
+    _target_: torchvision.transforms.v2.Compose
+    transforms:
+      - _target_: src.transforms.Gain
+        sample_rate: 16000
+        output_type: tensor
+        min_gain_in_db: -10
+        max_gain_in_db: 10
+        p: 1.0
+      - _target_: src.transforms.ImpulseResponse
+        sample_rate: 16000
+        output_type: tensor
+        ir_paths: ${aug_dir}/rir
+        convolve_mode: full
+        compensate_for_propagation_delay: False
+        p: 0.5
+       - _target_: src.transforms.wav_augs.BackgroundNoise
+         sample_rate: 16000
+         output_type: tensor
+         background_paths: ${aug_dir}/noise
+         min_snr_in_db: 5
+         max_snr_in_db: 20
+         p: 0.5
+
+  spectrogram_mix:
+    _target_: torchvision.transforms.v2.Compose
+    transforms:
+      - _target_: src.transforms.Permute
+        permutation: [2, 0, 1] # Преобразует спеку в непрерывный тензор вида [time, channels, freq] для паддинга
+  spectrogram_s1: ${transforms.instance_transforms.train.spectrogram_mix}
+  spectrogram_s2: ${transforms.instance_transforms.train.spectrogram_mix}
+
+inference:
+    get_spectrogram: ${transforms.instance_transforms.train.get_spectrogram}
+    spectrogram_mix: ${transforms.instance_transforms.train.spectrogram_mix}
+    spectrogram_s1: ${transforms.instance_transforms.train.spectrogram_s1}
+    spectrogram_s2: ${transforms.instance_transforms.train.spectrogram_s2}

@@ -1,0 +1,35 @@
+import torch
+import torch.optim as optim
+
+class WarmupWithCosAnnealing:
+    def __init__(self, optimizer, total_steps, warmup_ratio, start_factor):
+        warmup_steps = int(total_steps * warmup_ratio)
+        warmup_scheduler = optim.lr_scheduler.LinearLR(
+            optimizer,
+            start_factor=start_factor,
+            total_iters=warmup_steps
+        )
+        cos_annealing_scheduler = optim.lr_scheduler.CosineAnnealingLR(
+            optimizer,
+            T_max=total_steps - warmup_steps
+        )
+        self._lr_scheduler = optim.lr_scheduler.SequentialLR(
+            optimizer=optimizer,
+            schedulers=[warmup_scheduler, cos_annealing_scheduler],
+            milestones=[warmup_scheduler]
+        )
+
+    def __getattr__(self, name):
+        return getattr(self._target, name)
+
+    def __setattr__(self, name, value):
+        if name == "_lr_scheduler":
+            self._lr_scheduler = value
+        else:
+            setattr(self._target, name, value)
+    
+    def __delattr__(self, name):
+        if name == "_lr_scheduler":
+            super().__delattr__(name)
+        else:
+            delattr(self._target, name)
