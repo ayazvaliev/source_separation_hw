@@ -4,7 +4,6 @@ from pathlib import Path
 import pandas as pd
 import torch
 
-from src.logger.utils import plot_spectrogram
 from src.metrics.tracker import MetricTracker
 from src.trainer.base_trainer import BaseTrainer
 

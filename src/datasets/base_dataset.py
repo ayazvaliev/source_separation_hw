@@ -11,7 +11,7 @@ import torch
 from torch.utils.data import Dataset
 
 logger = logging.getLogger(__name__)
-torchaudio.set_audio_backend("soundfile") 
+
 
 class BaseDataset(Dataset):
     """
