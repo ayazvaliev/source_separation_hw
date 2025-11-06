@@ -15,6 +15,7 @@ editdistance
 flashlight-text
 gdown
 datasets
+yadisk
 
 
 black
