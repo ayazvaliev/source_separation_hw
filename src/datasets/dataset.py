@@ -17,7 +17,7 @@ class MainDataset(BaseDataset):
         data_root,
         name="train", 
         index_dir=None,
-        dataset_url="https://disk.360.yandex.ru/d/9k_k6G6a03GURg",
+        dataset_url=None,
         *args, 
         **kwargs
     ):
@@ -70,7 +70,7 @@ class MainDataset(BaseDataset):
             y = yadisk.Client()
 
             print("Downloading ZIP from Yandex.Disk...")
-            y.download_public(dataset_url, output_path)
+            y.download_public(dataset_url, str(output_path))
 
             with zipfile.ZipFile(output_path, 'r') as zip_ref:
                 zip_ref.extractall(str(self.data_root))
