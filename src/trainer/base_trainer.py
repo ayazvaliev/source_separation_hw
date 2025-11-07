@@ -49,9 +49,6 @@ class BaseTrainer:
                 sets of data.
             logger (Logger): logger that logs output.
             writer (WandBWriter | CometMLWriter): experiment tracker.
-            epoch_len (int | None): number of steps in each epoch for
-                iteration-based training. If None, use epoch-based
-                training (len(dataloader)).
             skip_oom (bool): skip batches with the OutOfMemory error.
             batch_transforms (dict[Callable] | None): transforms that
                 should be applied on the whole batch. Depend on the

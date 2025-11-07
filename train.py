@@ -42,12 +42,7 @@ def main(config):
     logger.info(model)
 
     # get function handles of loss and metrics
-    loss_function = instantiate(config.loss_function).to(device)
     metrics = instantiate(config.metrics)
-
-    # epoch_len = number of iterations for iteration-based training
-    # epoch_len = None or len(dataloader) for epoch-based training
-    epoch_len = config.trainer.get("epoch_len")
 
     trainer = Trainer(
         model=model,
@@ -55,7 +50,6 @@ def main(config):
         config=config,
         device=device,
         dataloaders=dataloaders,
-        epoch_len=epoch_len,
         logger=logger,
         writer=writer,
         batch_transforms=batch_transforms,
