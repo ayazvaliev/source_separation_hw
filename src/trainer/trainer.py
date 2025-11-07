@@ -95,6 +95,7 @@ class Trainer(BaseTrainer):
         self.writer.add_images("spectrograms", images)
 
     def log_predictions(
+        self,
         **batch,
     ):
         # TBD
