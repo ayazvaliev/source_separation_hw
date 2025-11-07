@@ -149,8 +149,7 @@ class BaseTrainer:
             self.device, enabled=self.mixed_precision is not torch.float32
         )
 
-        use_jit = self.cfg_trainer.get("use_jit", False)
-        self.torchscript = use_jit
+        self.torchscript = self.cfg_trainer.get("use_jit", False)
 
         # define checkpoint dir and init everything if required
         if self.cfg_trainer.get("resume_from") is not None:
@@ -182,7 +181,7 @@ class BaseTrainer:
         total_steps = (
             ceil(self.epoch_len / self.iters_to_accumulate) * self.cfg_trainer.n_epochs
         )
-        lr_scheduler_cls = get_class(self.config.lr_scheduler)
+        lr_scheduler_cls = get_class(self.config.lr_scheduler._target_)
         if has_param(lr_scheduler_cls, "total_steps"):
             self.lr_scheduler = instantiate(
                 self.config.lr_scheduler,
