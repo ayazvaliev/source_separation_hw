@@ -220,8 +220,29 @@ class WandBWriter:
             step=self.step,
         )
 
-    def add_images(self, image_names, images):
-        raise NotImplementedError()
+    def add_images(self, images_name, images, captions=None):
+        if captions is None:
+            captions = [""] * len(images)
+        elif isinstance(captions, str):
+            captions = [captions] + (len(images) - 1) * [""]
+        self.wandb.log(
+            {self._object_name(images_name): [self.wandb.Image(image, caption=caption) for image, caption in zip(images, captions)]},
+            step=self.step,
+        )
+    
+    def add_image(self, image_name, image):
+        """
+        Log an image to the experiment tracker.
+
+        Args:
+            image_name (str): name of the image to use in the tracker.
+            image (Path | ndarray | Image): image in the WandB-friendly
+                format.
+        """
+        self.wandb.log(
+            {self._object_name(image_name): self.wandb.Image(image)},
+            step=self.step,
+        )
 
     def add_pr_curve(self, curve_name, curve):
         raise NotImplementedError()

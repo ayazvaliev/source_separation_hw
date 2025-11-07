@@ -6,6 +6,7 @@ import torch
 
 from src.metrics.tracker import MetricTracker
 from src.trainer.base_trainer import BaseTrainer
+from src.logger.utils import plot_spectrogram
 
 
 class Trainer(BaseTrainer):
@@ -80,18 +81,21 @@ class Trainer(BaseTrainer):
         # logging scheme might be different for different partitions
         if mode == "train":  # the method is called only every self.log_step steps
             self.log_spectrogram(**batch)
+            pass
         else:
             # Log Stuff
             self.log_spectrogram(**batch)
             self.log_predictions(**batch)
 
-    def log_spectrogram(self, spectrogram, **batch):
-        spectrogram_for_plot = spectrogram[0].squeeze(0).detach().cpu()
-        image = plot_spectrogram(spectrogram_for_plot, "after_batch_transforms")
-        self.writer.add_image("spectrogram", image)
+    def log_spectrogram(self, spectrogram_mix, spectrogram_s1, spectrogram_s2, **batch):
+        spectrograms_for_plot = [
+            spectrogram[0].squeeze(0).detach().cpu() for spectrogram in [spectrogram_mix, spectrogram_s1, spectrogram_s2]
+        ]
+        images = [plot_spectrogram(spectrogram, desc) for spectrogram, desc in zip(spectrograms_for_plot, ["mix", "s1", "s2"])]
+        self.writer.add_images("spectrograms", images)
 
     def log_predictions(
         **batch,
     ):
         # TBD
-        raise NotImplementedError()
+        pass

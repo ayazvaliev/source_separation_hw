@@ -54,7 +54,6 @@ def main(config):
         logger=logger,
         writer=writer,
         batch_transforms=batch_transforms,
-        skip_oom=config.trainer.get("skip_oom", True),
     )
 
     trainer.train()

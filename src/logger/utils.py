@@ -40,3 +40,31 @@ def plot_images(imgs, config):
     plt.close()
 
     return image
+
+def plot_spectrogram(spectrogram, name=None, save_on_disk=False):
+    """
+    Plot spectrogram
+
+    Args:
+        spectrogram (Tensor): spectrogram tensor.
+        name (None | str): optional name.
+    Returns:
+        image (Image): image of the spectrogram
+    """
+    plt.figure(figsize=(20, 5))
+    mesh = plt.pcolormesh(spectrogram, shading="auto", cmap="viridis")
+    cbar = plt.colorbar(mesh)
+    plt.title(name)
+
+    if save_on_disk:
+        plt.savefig(f"{name}.png", format="png")
+    buf = io.BytesIO()
+    plt.savefig(buf, format="png")
+    buf.seek(0)
+
+    # convert buffer to Tensor
+    image = ToTensor()(PIL.Image.open(buf))
+
+    plt.close()
+
+    return image
