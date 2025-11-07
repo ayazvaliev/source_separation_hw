@@ -83,7 +83,7 @@ class BaseDataset(Dataset):
         )
 
         for name, audio in zip(["spectrogram_mix", "spectrogram_s1", "spectrogram_s2"],
-                               audios):
+                               audios.values()):
             data_dict.update(
                 {
                     name: self.get_spectrogram(audio)
