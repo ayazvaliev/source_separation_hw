@@ -51,7 +51,6 @@ def main(config):
 
     trainer = Trainer(
         model=model,
-        criterion=loss_function,
         metrics=metrics,
         config=config,
         device=device,

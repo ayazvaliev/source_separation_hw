@@ -36,7 +36,6 @@ class BaseTrainer:
         """
         Args:
             model (nn.Module): PyTorch model.
-            criterion (nn.Module): loss function for model training.
             metrics (dict): dict with the definition of metrics for training
                 (metrics[train]) and inference (metrics[inference]). Each
                 metric is an instance of src.metrics.BaseMetric.
