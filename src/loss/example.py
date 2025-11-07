@@ -37,16 +37,12 @@ class ExampleLoss(nn.Module):
         """
         sl_snr = torch.tensor(0.0)
         batch_size = logits.size(0)
-        target_s1 = audio_s1.squeeze(-1)
-        target_s2 = audio_s2.squeeze(-1)
-
-        print("mix length shape: ", audio_mix_length.shape)
-        print("target s1 shape: ", target_s1.shape)
-        print("target s2 shape: ", target_s2.shape)
+        audio_s1 = audio_s1.squeeze(-1)
+        audio_s2 = audio_s2.squeeze(-1)
 
         for i in range(batch_size):
-            target_s1 = target_s1[i, :audio_mix_length[i]] # (L,)
-            target_s2 = target_s2[i, :audio_mix_length[i]] # (L,)
+            target_s1 = audio_s1[i, :audio_mix_length[i]] # (L,)
+            target_s2 = audio_s2[i, :audio_mix_length[i]] # (L,)
 
             cur_logits = logits[i, :, :audio_mix_length[i]] #(C, L)
 
