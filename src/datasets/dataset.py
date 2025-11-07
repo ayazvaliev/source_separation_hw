@@ -48,9 +48,9 @@ class MainDataset(BaseDataset):
         super().__init__(index, *args, **kwargs)
 
     def _create_index(self, 
-                      name, 
-                      index_path,
-                      dataset_url):
+                      name: str, 
+                      index_path: Path,
+                      dataset_url: None | str):
         """
         Create index for the dataset. The function processes dataset metadata
         and utilizes it to get information dict for each element of
@@ -66,19 +66,20 @@ class MainDataset(BaseDataset):
         """
         index = []
         print("dataset_url", dataset_url)
-        if dataset_url is not None and dataset_url.startswith("http"):
-            output_path = self.data_root / "dla_dataset.zip"
-            y = yadisk.Client()
+        if dataset_url is not None:
+            if dataset_url.startswith('http'):
+                output_path = self.data_root / "dla_dataset.zip"
+                y = yadisk.Client()
 
-            print("Downloading ZIP from Yandex.Disk...")
-            y.download_public(dataset_url, str(output_path))
+                print("Downloading ZIP from Yandex.Disk...")
+                y.download_public(dataset_url, str(output_path))
 
-            with zipfile.ZipFile(output_path, 'r') as zip_ref:
-                zip_ref.extractall(str(self.data_root))
+                with zipfile.ZipFile(output_path, 'r') as zip_ref:
+                    zip_ref.extractall(str(self.data_root))
         
-            os.remove(output_path)
-        elif not dataset_url.startswith("http"):
-            raise RuntimeError("dataset path must be either URL or None")
+                os.remove(output_path)
+            else:
+                raise RuntimeError("dataset path must be either URL or None")
 
         audio_path = self.data_root / "dla_dataset" / "audio" / name 
         mouths_path  =  self.data_root / "dla_dataset" / "mouths"
