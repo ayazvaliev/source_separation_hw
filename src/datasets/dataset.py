@@ -93,21 +93,16 @@ class MainDataset(BaseDataset):
             audio_s1_path = str(audio_path / "s1" / item_name)
             audio_s2_path = str(audio_path / "s2" / item_name)
 
-            mix_info = torchaudio.info(audio_mix_path)
-            s1_info = torchaudio.info(audio_s1_path)
-            s2_info = torchaudio.info(audio_s2_path)
+            data_instance = OrderedDict()
 
-            data_instance = OrderedDict(
-                {
-                "audio_mix_path" : str(audio_path / "mix" / item_name),
-                "audio_s1_path" : str(audio_path / "s1" / item_name),
-                "audio_s2_path" : str(audio_path / "s2" / item_name),
-                "mouths_path" : str(mouths_path / item_name),
-                "audio_mix_time": mix_info.num_frames / mix_info.sample_rate,
-                "audio_s1_time": s1_info.num_frames / mix_info.sample_rate,
-                "audio_s2_time": s2_info.num_frames / s2_info.sample_rate
-                }
-            )
+            for path, name in zip(["audio_mix_path", "audio_s1_path", "audio_s2_path"], 
+                                  [audio_mix_path, audio_s1_path, audio_s2_path]):
+                if os.path.exists(path):
+                    info = torchaudio.info(audio_mix_path)
+
+                    data_instance[name] = path
+                    data_instance[name + "_time"] = info.num_frames / info.sample_rate
+            data_instance["mouths_path"] = str(mouths_path / item_name)
             index.append(data_instance)
 
         # write index to disk
