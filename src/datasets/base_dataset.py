@@ -76,7 +76,7 @@ class BaseDataset(Dataset):
             for name in ["audio_mix_path", "audio_s1_path", "audio_s2_path"]
         }
 
-        audio["audio_mix"] = (
+        audios["audio_mix"] = (
             self.instance_transforms["audio_mix"](audios["audio_mix"])
             if (self.instance_transforms is not None and "audio_mix" in self.instance_transforms)
             else audios["audio_mix"]
