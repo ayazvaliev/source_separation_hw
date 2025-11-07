@@ -40,9 +40,12 @@ class ExampleLoss(nn.Module):
         target_s1 = audio_s1.squeeze(-1)
         target_s2 = audio_s2.squeeze(-1)
 
+        print('target_s1 shape: ', target_s1)
+        print('target_s2 shape: ', target_s2)
+
         for i in range(batch_size):
-            target_s1 = target_s1[i][:audio_mix_length[i]] # (L,)
-            target_s2 = target_s2[i][:audio_mix_length[i]] # (L,)
+            target_s1 = target_s1[i, :audio_mix_length[i]] # (L,)
+            target_s2 = target_s2[i, :audio_mix_length[i]] # (L,)
 
             cur_logits = logits[i, :, :audio_mix_length[i]] #(C, L)
 
