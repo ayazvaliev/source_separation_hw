@@ -35,9 +35,8 @@ class BaselineModel(nn.Module):
         Returns:
             output (dict): output dict containing logits.
         """
-        # audio_mix (N, L)
-        audio_mix = audio_mix.unsqueeze(-1)
-        return {"logits": self.net(audio_mix)} # (N, L. NUM_CLASSES)
+        # audio_mix (N, L, C=1)
+        return {"logits": self.net(audio_mix)} # (N, L, NUM_CLASSES=2)
 
     def __str__(self):
         """
