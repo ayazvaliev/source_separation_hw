@@ -158,6 +158,9 @@ class BaseDataset(Dataset):
                 the dataset that satisfied the condition. The dict has
                 required metadata information, such as label and object path.
         """
+        if "audio_mix_time" not in index[0]:
+            return index
+
         initial_size = len(index)
         audio_length_tensor = torch.tensor([el["audio_mix_time"] for el in index], dtype=torch.int32)
         if max_audio_length is not None:
