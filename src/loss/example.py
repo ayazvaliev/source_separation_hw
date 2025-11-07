@@ -35,7 +35,7 @@ class ExampleLoss(nn.Module):
         Returns:
             losses (dict): dict containing calculated loss functions.
         """
-        sl_snr = torch.tensor(0.0, requires_grad=True)
+        sl_snr = torch.tensor(0.0)
         batch_size = logits.size(0)
         target_s1 = audio_s1.squeeze(-1)
         target_s2 = audio_s2.squeeze(-1)
