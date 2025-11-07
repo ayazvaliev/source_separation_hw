@@ -66,7 +66,7 @@ class BaseTrainer:
 
         self.logger = logger
 
-        self.checkpoint_dir = ROOT_PATH / config.trainer.save_dir / config.writer.run_name
+        self.checkpoint_dir = ROOT_PATH / self.cfg_trainer.save_dir / config.writer.run_name
 
         self.criterion = instantiate(config.loss_function).to(self.device)
 
@@ -75,7 +75,7 @@ class BaseTrainer:
         # define dataloaders
         self.train_dataloader = dataloaders["train"]
 
-        if config.trainer.gradient_accumulation is None:
+        if self.cfg_trainer.gradient_accumulation is None:
             gradient_accumulation = self.train_dataloader.batch_size
         else:
             gradient_accumulation = self.cfg_trainer.gradient_accumulation
@@ -90,7 +90,7 @@ class BaseTrainer:
             self.train_dataloader = inf_loop(self.train_dataloader)
             self.epoch_len = epoch_len
 
-        self.log_step = config.trainer.get("log_step", 50) * self.iters_to_accumulate
+        self.log_step = self.cfg_trainer.get("log_step", 50) * self.iters_to_accumulate
 
         self.evaluation_dataloaders = {k: v for k, v in dataloaders.items() if k != "train"}
 
@@ -153,11 +153,11 @@ class BaseTrainer:
         self.torchscript = use_jit
 
         # define checkpoint dir and init everything if required
-        if config.trainer.get("resume_from") is not None:
-            resume_path = self.checkpoint_dir / config.trainer.resume_from
+        if self.cfg_trainer.get("resume_from") is not None:
+            resume_path = self.checkpoint_dir / self.cfg_trainer.resume_from
             self._resume_checkpoint(resume_path)
         elif self.cfg_trainer.get("from_pretrained") is not None:
-            self._from_pretrained(config.trainer.get("from_pretrained"))
+            self._from_pretrained(self.cfg_trainer.get("from_pretrained"))
             if self.torchscript:
                 self.model = torch.jit.script(self.model_)
             else:
@@ -458,8 +458,9 @@ class BaseTrainer:
         Clips the gradient norm by the value defined in
         config.trainer.max_grad_norm
         """
-        if self.config["trainer"].get("max_grad_norm", None) is not None:
-            clip_grad_norm_(self.model.parameters(), self.config["trainer"]["max_grad_norm"])
+        max_grad_norm = self.cfg_trainer.get("max_grad_norm", None)
+        if max_grad_norm is not None:
+            clip_grad_norm_(self.model.parameters(), max_grad_norm)
 
     @torch.no_grad()
     def _get_grad_norm(self, norm_type=2):

@@ -31,6 +31,7 @@ trainer:
   log_step: 50
   n_epochs: 100
   epoch_len: 500
+  gradient_accumulation: null
   use_jit: True # врубает торчскриптовский jit. Не работает с автокастом >:(
   device_tensors: ["audio_mix", "audio_s1", "audio_s2", "audio_mix_length", "audio_s1_length", "audio_s2_length"] # which tensors should be on device (ex. GPU)
   resume_from: null # null or path to the checkpoint dir with *.pth and config.yaml
