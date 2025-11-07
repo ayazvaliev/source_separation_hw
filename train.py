@@ -48,6 +48,7 @@ def main(config):
         model=model,
         metrics=metrics,
         config=config,
+        project_config=project_config,
         device=device,
         dataloaders=dataloaders,
         logger=logger,

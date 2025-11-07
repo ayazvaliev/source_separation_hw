@@ -29,8 +29,6 @@ class BaseTrainer:
         dataloaders,
         logger,
         writer,
-        mixed_precision,
-        use_jit,
         batch_transforms=None,
     ):
         """
@@ -60,7 +58,6 @@ class BaseTrainer:
         self.project_config = project_config
 
         self.model_ = model
-        self.torchscript = use_jit
 
         self.cfg_trainer = self.config.trainer
 
@@ -136,6 +133,7 @@ class BaseTrainer:
             writer=writer,
         )
 
+        mixed_precision = self.cfg_trainer.get("mixed_precision", "float32")
         if mixed_precision != "float32":
             self.torchscript = False
             if mixed_precision == "float16":
@@ -150,6 +148,9 @@ class BaseTrainer:
         self.grad_scaler = torch.amp.GradScaler(
             self.device, enabled=self.mixed_precision is not torch.float32
         )
+
+        use_jit = self.cfg_trainer.get("use_jit", False)
+        self.torchscript = use_jit
 
         # define checkpoint dir and init everything if required
         if config.trainer.get("resume_from") is not None:
