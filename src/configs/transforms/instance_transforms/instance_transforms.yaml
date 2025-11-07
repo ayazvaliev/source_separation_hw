@@ -43,8 +43,20 @@ train:
   spectrogram_s1: ${transforms.instance_transforms.train.spectrogram_mix}
   spectrogram_s2: ${transforms.instance_transforms.train.spectrogram_mix}
 
+  audio_mix:
+    _target_: torchvision.transforms.v2.Compose
+    transforms:
+      - _target_: src.transforms.Permute
+        permutation: [1, 0] # Преобразует аудио в непрерывный тензор вида [time, channels] для паддинга
+  audio_s1: ${transforms.instance_transforms.train.audio_mix}
+  audio_s2: ${transforms.instance_transforms.train.audio_mix}
+
 inference:
     get_spectrogram: ${transforms.instance_transforms.train.get_spectrogram}
     spectrogram_mix: ${transforms.instance_transforms.train.spectrogram_mix}
     spectrogram_s1: ${transforms.instance_transforms.train.spectrogram_s1}
     spectrogram_s2: ${transforms.instance_transforms.train.spectrogram_s2}
+
+    audio_mix: ${transforms.instance_transforms.train.audio_mix}
+    audio_s1: ${transforms.instance_transforms.train.audio_s1}
+    audio_s2: ${transforms.instance_transforms.train.audio_s2}
