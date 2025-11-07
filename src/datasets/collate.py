@@ -39,7 +39,7 @@ def collate_fn(dataset_items: list[dict]):
     result_batch.update(
         {
             name + "_length": torch.tensor(
-                [elem[name].size(0) for elem in dataset_items], dtype=torch.int32)
+                [elem[name].size(-1) for elem in dataset_items], dtype=torch.int32)
             for name in audio_names
         }
     )
