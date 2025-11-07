@@ -159,7 +159,7 @@ class BaseDataset(Dataset):
                 required metadata information, such as label and object path.
         """
         initial_size = len(index)
-        audio_length_tensor = torch.tensor([el["audio_mix_len"] for el in index], dtype=torch.int32)
+        audio_length_tensor = torch.tensor([el["audio_mix_time"] for el in index], dtype=torch.int32)
         if max_audio_length is not None:
             exceeds_audio_length = audio_length_tensor >= max_audio_length
             _total = exceeds_audio_length.sum()
