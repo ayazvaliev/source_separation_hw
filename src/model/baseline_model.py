@@ -16,14 +16,13 @@ class BaselineModel(nn.Module):
         """
         super().__init__()
 
-        self.net = nn.Sequential(
-            nn.Conv1d(64, 8, kernel_size=3, padding=1),
+        self.conv_block = nn.Sequential(
+            nn.Conv1d(1, 8, kernel_size=3, padding=1),
             nn.ReLU(),
             nn.Conv1d(8, 16, kernel_size=3, padding=1),
             nn.ReLU(),
             nn.Conv1d(16, 2, kernel_size=3, padding=1),
-            nn.Linear(in_features=n_feats, out_features=fc_hidden),
-            nn.Linear(in_features=fc_hidden, out_features=n_class)
+            nn.ReLU()
         )
 
     def forward(self, audio_mix: torch.Tensor, **batch):
@@ -36,7 +35,10 @@ class BaselineModel(nn.Module):
             output (dict): output dict containing logits.
         """
         # audio_mix (N, L, C=1)
-        return {"logits": self.net(audio_mix)} # (N, L, NUM_CLASSES=2)
+        x = audio_mix.transpose(1, 2).contiguous() # (N, C=1, L)
+        x = self.conv_block(x) # (N, C=2, L) 
+
+        return {"logits": x}
 
     def __str__(self):
         """

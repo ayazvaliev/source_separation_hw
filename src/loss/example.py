@@ -37,10 +37,14 @@ class ExampleLoss(nn.Module):
         """
         sl_snr = torch.tensor(0.0, requires_grad=True)
         batch_size = logits.size(0)
+        target_s1 = audio_s1.squeeze(-1)
+        target_s2 = audio_s2.squeeze(-1)
+
         for i in range(batch_size):
-            target_s1 = audio_s1[i][:audio_mix_length[i]]
-            target_s2 = audio_s2[i][:audio_mix_length[i]]
-            cur_logits = logits[i][:audio_mix_length[i]]
+            target_s1 = target_s1[i][:audio_mix_length[i]] # (L,)
+            target_s2 = target_s2[i][:audio_mix_length[i]] # (L,)
+
+            cur_logits = logits[i, :, :audio_mix_length[i]] #(C, L)
 
             sl_snr += - torch.max(self.loss(target_s1, cur_logits[0]) + self.loss(target_s2,  cur_logits[1]), 
                 self.loss(target_s2,  cur_logits[0]) + self.loss(target_s1,  cur_logits[1]) 
