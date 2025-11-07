@@ -99,9 +99,9 @@ class MainDataset(BaseDataset):
                                   [audio_mix_path, audio_s1_path, audio_s2_path]):
                 if os.path.exists(path):
                     info = torchaudio.info(audio_mix_path)
-
                     data_instance[name] = path
                     data_instance[name + "_time"] = info.num_frames / info.sample_rate
+
             data_instance["mouths_path"] = str(mouths_path / item_name)
             index.append(data_instance)
 
