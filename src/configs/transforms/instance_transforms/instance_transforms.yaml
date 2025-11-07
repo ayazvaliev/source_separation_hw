@@ -39,7 +39,7 @@ train:
     _target_: torchvision.transforms.v2.Compose
     transforms:
       - _target_: src.transforms.Permute
-        permutation: [2, 0, 1] # Преобразует спеку в непрерывный тензор вида [time, channels, freq] для паддинга
+        permutation: [1, 0] # Преобразует спеку в непрерывный тензор вида [time, channels, freq] для паддинга
   spectrogram_s1: ${transforms.instance_transforms.train.spectrogram_mix}
   spectrogram_s2: ${transforms.instance_transforms.train.spectrogram_mix}
 
