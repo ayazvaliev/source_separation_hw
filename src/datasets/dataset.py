@@ -65,6 +65,7 @@ class MainDataset(BaseDataset):
                 such as label and object path.
         """
         index = []
+        print("dataset_url", dataset_url)
         if dataset_url is not None and dataset_url.startswith("http"):
             output_path = self.data_root / "dla_dataset.zip"
             y = yadisk.Client()
