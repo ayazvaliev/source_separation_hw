@@ -23,7 +23,7 @@ def collate_fn(dataset_items: list[dict]):
     }
     result_batch.update(
          {
-            name: pad_sequence([elem[name] for elem in dataset_items], batch_first=True)
+            name: pad_sequence([elem[name].permute(1, 0).contiguous() for elem in dataset_items], batch_first=True)
             for name in audio_names
         }
     )
