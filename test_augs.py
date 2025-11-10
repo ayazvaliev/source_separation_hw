@@ -61,11 +61,11 @@ def main(config):
 
     for i, batch in enumerate(trainer.train_dataloader):
         for elem in batch["audio_s1"]:
-            torchaudio.save(f"{i}_s1.wav", elem, sample_rate=16_000, encoding="wav")
+            torchaudio.save(f"{i}_s1.wav", elem, sample_rate=16_000, format="wav")
         for elem in batch["audio_s2"]:
-            torchaudio.save(f"{i}_s2.wav", elem, sample_rate=16_000, encoding="wav")
+            torchaudio.save(f"{i}_s2.wav", elem, sample_rate=16_000, format="wav")
         for elem in batch["audio_mix"]:
-            torchaudio.save(f"{i}_mix.wav", elem, sample_rate=16_000, encoding="wav")
+            torchaudio.save(f"{i}_mix.wav", elem, sample_rate=16_000, format="wav")
         break
 
    # trainer.train()
