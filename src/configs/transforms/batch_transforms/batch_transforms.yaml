@@ -36,8 +36,8 @@ train:
         sample_rate: 16000
         p: 0.25
       - _target_: torch_audiomentations.PitchShift
-        min_semitones: -3.0
-        max_semitones: 3.0
+        min_transpose_semitones: -3.0
+        max_transpose_semitones: 3.0
         sample_rate: 16000
         output_type: tensor
         p: 0.35
