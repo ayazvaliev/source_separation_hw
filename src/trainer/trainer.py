@@ -87,12 +87,15 @@ class Trainer(BaseTrainer):
             self.log_spectrogram(**batch)
             self.log_predictions(**batch)
 
-    def log_spectrogram(self, spectrogram_mix, spectrogram_s1, spectrogram_s2, **batch):
+    def log_spectrogram(self, **batch):
+        spectrogram_keys = [k for k in batch.keys() if k.startswith("spectrogram")]
         spectrograms_for_plot = [
-            spectrogram[0].squeeze(0).detach().cpu() for spectrogram in [spectrogram_mix, spectrogram_s1, spectrogram_s2]
+            batch[k][0].squeeze(0).detach().cpu() for k in spectrogram_keys
         ]
-        images = [plot_spectrogram(spectrogram, desc) for spectrogram, desc in zip(spectrograms_for_plot, ["mix", "s1", "s2"])]
-        self.writer.add_images("spectrograms", images)
+        images = [plot_spectrogram(spectrogram, desc) for spectrogram, desc in 
+                  zip(spectrograms_for_plot, [k.split('_')[-1] for k in spectrogram_keys])]
+        if len(images) > 0:
+            self.writer.add_images("spectrograms", images)
 
     def log_predictions(
         self,
