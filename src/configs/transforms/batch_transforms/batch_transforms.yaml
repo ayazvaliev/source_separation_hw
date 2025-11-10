@@ -15,7 +15,7 @@ train:
     power: 2.0
 
   audio_s1:
-    _target_: nn.Sequential
+    _target_: torch.nn.Sequential
     _args_:
       - _target_: torch_audiomentations.Shift
         min_shift: -0.1
