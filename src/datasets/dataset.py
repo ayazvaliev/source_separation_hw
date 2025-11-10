@@ -95,7 +95,7 @@ class MainDataset(BaseDataset):
 
             data_instance = OrderedDict()
 
-            for path, name in zip(["audio_mix", "audio_s1", "audio_s2"], 
+            for name, path in zip(["audio_mix", "audio_s1", "audio_s2"], 
                                   [audio_mix_path, audio_s1_path, audio_s2_path]):
                 if os.path.exists(path):
                     data_instance[name + "_path"] = path
