@@ -208,3 +208,6 @@ __marimo__/
 
 saved
 outputs
+dla_dataset
+wandb
+test_*

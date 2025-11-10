@@ -1,6 +1,6 @@
 defaults:
   - model: baseline
-  - writer: wandb
+  - writer: cometml
   - metrics: example
   - datasets: dataset
   - dataloader: dataloader
@@ -34,7 +34,6 @@ trainer:
   gradient_accumulation: null
   use_jit: False # врубает торчскриптовский jit. Не работает с автокастом >:(
   device_tensors: ["audio_s1", "audio_s2", "audio_mix"] # which tensors should be on device (ex. GPU)
-  custom_mix: True
   resume_from: null # null or path to the checkpoint dir with *.pth and config.yaml
   device: auto # device name or "auto"
   override: True # if True, will override the previous run with the same name

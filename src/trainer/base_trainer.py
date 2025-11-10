@@ -170,8 +170,6 @@ class BaseTrainer:
 
         self._initialize_optimizer()
 
-        self.custom_mix = self.cfg_trainer.get("custom_mix", False)
-
     def _initialize_optimizer(self):
         grouped_trainable_params = get_optimizer_grouped_parameters(
             self.model, self.config.optimizer.weight_decay
@@ -413,7 +411,7 @@ class BaseTrainer:
         """
         for tensor_for_device in self.cfg_trainer.device_tensors:
             if tensor_for_device in batch:
-                if tensor_for_device == "audio_mix" and self.custom_mix:
+                if tensor_for_device == "audio_mix" and "get_mix" in self.batch_transforms:
                     continue
                 batch[tensor_for_device] = batch[tensor_for_device].to(self.device)
         return batch
