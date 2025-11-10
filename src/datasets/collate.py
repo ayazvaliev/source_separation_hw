@@ -1,5 +1,4 @@
 import torch
-from torch.nn.utils.rnn import pad_sequence
 
 
 def collate_fn(dataset_items: list[dict]):
@@ -14,36 +13,15 @@ def collate_fn(dataset_items: list[dict]):
         result_batch (dict[Tensor]): dict, containing batch-version
             of the tensors.
     """
-    spectrogram_names = ["spectrogram_mix", "spectrogram_s1", "spectrogram_s2"]
-    audio_names = ["audio_mix", "audio_s1", "audio_s2"]
+    audio_names = ["audio_s1", "audio_s2", "audio_mix"]
+
+    all_keys = set(dataset_items[0].keys())
 
     result_batch = {
-        name: pad_sequence([elem[name] for elem in dataset_items], batch_first=True) 
-        for name in spectrogram_names
+        name: torch.stack([elem[name] for elem in dataset_items])
+        for name in audio_names if name in all_keys
     }
-    result_batch.update(
-         {
-            name: pad_sequence([elem[name].permute(1, 0).contiguous() for elem in dataset_items], batch_first=True)
-            for name in audio_names
-        }
-    )
 
-    result_batch.update(
-        {
-            name + "_length": torch.tensor(
-                [elem[name].size(0) for elem in dataset_items], dtype=torch.int32)
-            for name in spectrogram_names
-        }
-    )
-
-    result_batch.update(
-        {
-            name + "_length": torch.tensor(
-                [elem[name].size(-1) for elem in dataset_items], dtype=torch.int32)
-            for name in audio_names
-        }
-    )
-  
     excluded_keys = set(result_batch.keys())
     for k in dataset_items[0].keys():
         if k not in excluded_keys:

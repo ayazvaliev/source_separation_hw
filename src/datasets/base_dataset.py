@@ -51,7 +51,7 @@ class BaseDataset(Dataset):
         self.target_sr = sr
         index = self._shuffle_and_limit_index(index, limit, shuffle_index)
 
-        self.instance_transforms = instance_transforms
+        self.instance_transforms = instance_transforms or {}
 
     def __getitem__(self, ind):
         """
@@ -71,27 +71,14 @@ class BaseDataset(Dataset):
 
         data_dict = self._index[ind]
 
-        audios = {
-            name[:name.rfind("_")]: self.load_audio(data_dict[name])
-            for name in ["audio_mix_path", "audio_s1_path", "audio_s2_path"]
-        }
-
-        audios["audio_mix"] = (
-            self.instance_transforms["audio_mix"](audios["audio_mix"])
-            if (self.instance_transforms is not None and "audio_mix" in self.instance_transforms)
-            else audios["audio_mix"]
+        audio_names = ["audio_s1", "audio_s2", "audio_mix"]
+        data_dict.update(
+            {
+                name: self.load_audio(data_dict[name + "_path"])
+                for name in audio_names
+            }
         )
-
-        for name, audio in zip(["spectrogram_mix", "spectrogram_s1", "spectrogram_s2"],
-                               audios.values()):
-            data_dict.update(
-                {
-                    name: self.get_spectrogram(audio)
-                }
-            )
-        data_dict.update({k: v.squeeze(0) for k, v in audios.items()})
         data_dict = self.preprocess_data(data_dict)
-
         return data_dict
 
     def __len__(self):
@@ -112,7 +99,7 @@ class BaseDataset(Dataset):
         target_sr = self.target_sr
         if sr != target_sr:
             audio_tensor = torchaudio.functional.resample(audio_tensor, sr, target_sr)
-        return audio_tensor.unsqueeze(0)
+        return audio_tensor
 
     def preprocess_data(self, instance_data):
         """
@@ -130,8 +117,6 @@ class BaseDataset(Dataset):
         """
         if self.instance_transforms is not None:
             for transform_name in self.instance_transforms.keys():
-                if transform_name in {"audio_mix", "get_spectrogram"}:
-                    continue
                 instance_data[transform_name] = self.instance_transforms[
                     transform_name
                 ](instance_data[transform_name])

@@ -1,7 +1,7 @@
 defaults:
-  - instance_transforms: instance_transforms
+  - batch_transforms: batch_transforms
   - _self_
 
-batch_transforms:
+instance_transforms:
   train: null
   inference: null

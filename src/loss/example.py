@@ -15,7 +15,6 @@ class ExampleLoss(nn.Module):
     def forward(self, 
                 audio_s1, 
                 audio_s2,
-                audio_mix_length,
                 logits,  
                 **batch):
         """
@@ -36,19 +35,11 @@ class ExampleLoss(nn.Module):
             losses (dict): dict containing calculated loss functions.
         """
         sl_snr = torch.tensor(0.0)
-        batch_size = logits.size(0)
-        audio_s1 = audio_s1.squeeze(-1)
-        audio_s2 = audio_s2.squeeze(-1)
+        target_s1 = audio_s1.squeeze(1)
+        target_s2 = audio_s2.squeeze(1)
 
-        for i in range(batch_size):
-            target_s1 = audio_s1[i, :audio_mix_length[i]] # (L,)
-            target_s2 = audio_s2[i, :audio_mix_length[i]] # (L,)
-
-            cur_logits = logits[i, :, :audio_mix_length[i]] #(C, L)
-
-            sl_snr += - torch.max(self.loss(target_s1, cur_logits[0]) + self.loss(target_s2,  cur_logits[1]), 
-                self.loss(target_s2,  cur_logits[0]) + self.loss(target_s1,  cur_logits[1]) 
-            )
-        sl_snr /= batch_size
+        sl_snr = - torch.max(self.loss(target_s1, logits[:, 0, :]) + self.loss(target_s2, logits[:, 1, :]),
+                             self.loss(target_s2,  logits[:, 0, :]) + self.loss(target_s1,  logits[:, 1, :])
+                    )
 
         return {"loss": sl_snr}

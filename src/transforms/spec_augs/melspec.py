@@ -33,4 +33,4 @@ class LogMelSpecTransform(nn.Module):
         )
 
     def __call__(self, audio: torch.Tensor, **batch) -> torch.Tensor:
-        return self.amplitude_to_db(self.melspec_transform(audio.squeeze(0)))
+        return self.amplitude_to_db(self.melspec_transform(audio))

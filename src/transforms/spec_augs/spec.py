@@ -15,4 +15,4 @@ class LogSpecTransform(nn.Module):
         self.amplitude_to_db = AmplitudeToDB("power" if power == 2.0 else "magnitude", top_db=80)
 
     def __call__(self, audio: torch.Tensor) -> torch.Tensor:
-        return self.amplitude_to_db(self.spec_transform(audio.squeeze(0)))
+        return self.amplitude_to_db(self.spec_transform(audio))

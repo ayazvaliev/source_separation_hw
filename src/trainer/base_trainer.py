@@ -170,6 +170,8 @@ class BaseTrainer:
 
         self._initialize_optimizer()
 
+        self.custom_mix = self.cfg_trainer.get("custom_mix", False)
+
     def _initialize_optimizer(self):
         grouped_trainable_params = get_optimizer_grouped_parameters(
             self.model, self.config.optimizer.weight_decay
@@ -411,6 +413,8 @@ class BaseTrainer:
         """
         for tensor_for_device in self.cfg_trainer.device_tensors:
             if tensor_for_device in batch:
+                if tensor_for_device == "audio_mix" and self.custom_mix:
+                    continue
                 batch[tensor_for_device] = batch[tensor_for_device].to(self.device)
         return batch
 
@@ -432,24 +436,30 @@ class BaseTrainer:
         # do batch transforms on device
         transform_type = "train" if self.is_train else "inference"
         transforms = self.batch_transforms.get(transform_type)
-        if transforms is not None:
-            """
-            if "audio" in transforms:
-                batch["audio"] = transforms["audio"](batch["audio"])
-            if "get_spectrogram" in transforms:
-                spectrogram, spectrogram_length = transforms["get_spectrogram"](**batch)
-                batch["spectrogram"] = spectrogram.to(self.device)
-                batch["spectrogram_length"] = spectrogram_length.to(self.device)
-                batch["spectrogram"] = (
-                    batch["spectrogram"].permute(1, 2, 3, 0).contiguous()
-                )  # (T, N, C, H) -> (N, C, H, T)
-            """
-            for transform_name in transforms.keys():
-                """
-                if transform_name in {"audio", "get_spectrogram"}:
-                    continue
-                """
+        if transforms is None:
+            return batch
+        
+        used_transforms = set()
+        for transform_name in transforms.keys():
+            if not transform_name.startswith("get_"):
+                if transform_name in batch:
+                    batch[transform_name] = transforms[transform_name](batch[transform_name])
+                    used_transforms.add(transform_name)
+    
+        if "get_mix" in transforms:
+            batch["audio_mix"] = transforms["get_mix"](**batch)
+
+            if "audio_mix" in transforms:
+                batch["audio_mix"] = transforms["audio_mix"](batch["audio_mix"])
+                used_transforms.add("audio_mix")
+
+        if "get_spectrogram" in transforms:
+            batch["spectrogram_mix"] = transforms["get_spectrogram"](batch["audio_mix"])
+
+        for transform_name in transforms.keys():
+            if not transform_name.startswith("get_") and transform_name not in used_transforms:
                 batch[transform_name] = transforms[transform_name](batch[transform_name])
+
         return batch
 
     def _clip_grad_norm(self):

@@ -33,7 +33,8 @@ trainer:
   epoch_len: 500
   gradient_accumulation: null
   use_jit: True # врубает торчскриптовский jit. Не работает с автокастом >:(
-  device_tensors: ["audio_mix", "audio_s1", "audio_s2", "audio_mix_length", "audio_s1_length", "audio_s2_length"] # which tensors should be on device (ex. GPU)
+  device_tensors: ["audio_s1", "audio_s2", "audio_mix"] # which tensors should be on device (ex. GPU)
+  custom_mix: True
   resume_from: null # null or path to the checkpoint dir with *.pth and config.yaml
   device: auto # device name or "auto"
   override: True # if True, will override the previous run with the same name

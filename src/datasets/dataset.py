@@ -89,7 +89,7 @@ class MainDataset(BaseDataset):
             # create dataset
             item_name = item.name
 
-            audio_mix_path = str(audio_path / "mix" / item_name)
+            audio_mix_path = str(item)
             audio_s1_path = str(audio_path / "s1" / item_name)
             audio_s2_path = str(audio_path / "s2" / item_name)
 
@@ -98,10 +98,11 @@ class MainDataset(BaseDataset):
             for path, name in zip(["audio_mix", "audio_s1", "audio_s2"], 
                                   [audio_mix_path, audio_s1_path, audio_s2_path]):
                 if os.path.exists(path):
-                    info = torchaudio.info(audio_mix_path)
                     data_instance[name + "_path"] = path
                     data_instance[name + "_time"] = info.num_frames / info.sample_rate
 
+            info = torchaudio.info(audio_mix_path)
+            data_instance["length"] = info.num_frames / info.sample_rate
             data_instance["mouths_path"] = str(mouths_path / item_name)
             index.append(data_instance)
 

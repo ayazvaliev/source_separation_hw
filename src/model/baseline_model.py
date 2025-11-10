@@ -34,9 +34,8 @@ class BaselineModel(nn.Module):
         Returns:
             output (dict): output dict containing logits.
         """
-        # audio_mix (N, L, C=1)
-        x = audio_mix.transpose(1, 2).contiguous() # (N, C=1, L)
-        x = self.conv_block(x) # (N, C=2, L) 
+        # audio_mix (N, C=1, L)
+        x = self.conv_block(audio_mix) # (N, C=2, L) 
 
         return {"logits": x}
 
