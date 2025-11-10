@@ -18,8 +18,8 @@ train:
     _target_: torch.nn.Sequential
     _args_:
       - _target_: torch_audiomentations.Shift
-        min_shift: -0.1
-        max_shift: 0.1
+        min_shift: -0.15
+        max_shift: 0.15
         rollover: True
         sample_rate: 16000
         output_type: tensor
@@ -37,11 +37,11 @@ train:
         output_type: tensor
         p: 0.35
       - _target_: torch_audiomentations.AddColoredNoise
-        min_snr_in_db: 25
-        max_snr_in_db: 40
+        min_snr_in_db: 20
+        max_snr_in_db: 35
         sample_rate: 16000
         output_type: tensor
-        p: 0.05
+        p: 0.5
       - _target_: torch_audiomentations.PeakNormalization
         apply_to: only_too_loud_sounds
         sample_rate: 16000
