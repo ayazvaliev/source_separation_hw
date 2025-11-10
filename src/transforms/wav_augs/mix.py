@@ -17,7 +17,7 @@ class Mix(nn.Module):
         self.max_snr_in_db = max_snr_in_db
         self.snr_distribution = torch.distributions.Uniform(
             low=torch.tensor(
-                self.max_snr_in_db,
+                self.min_snr_in_db,
                 dtype=torch.float32,
             ),
             high=torch.tensor(
