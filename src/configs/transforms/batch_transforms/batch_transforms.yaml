@@ -30,7 +30,7 @@ train:
         sample_rate: 16000
         output_type: tensor
         p: 0.7
-      - _target_: src.transforms.SpeedPertrub
+      - _target_: src.transforms.SpeedPerturb
         min_speed: 0.9
         max_speed: 1.10
         sample_rate: 16000
