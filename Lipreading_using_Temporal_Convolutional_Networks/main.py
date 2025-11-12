@@ -266,7 +266,7 @@ def main():
             #logger.info(f'Model has been successfully loaded from {args.model_path}')
         # feature extraction
         if args.mouth_patch_path:
-            save2npz( args.mouth_embedding_out_path, data = extract_feats(model,device).to(device).detach().numpy())
+            save2npz( args.mouth_embedding_out_path, data = extract_feats(model,device).cpu().detach().numpy())
             return
         # if test-time, performance on test partition and exit. Otherwise, performance on validation and continue (sanity check for reload)
         if args.test:
