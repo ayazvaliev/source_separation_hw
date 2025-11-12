@@ -215,3 +215,4 @@ test_*
 #Большие файлы с датасетом и индексом
 dla_dataset/
 indexes/
+Lipreading_using_Temporal_Convolutional_Networks\models\lrw_resnet18_dctcn_video_boundary.pth
