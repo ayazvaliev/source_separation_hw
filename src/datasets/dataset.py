@@ -5,6 +5,7 @@ from pathlib import Path
 import os
 import yadisk
 import zipfile
+import subprocess
 
 from src.datasets.base_dataset import BaseDataset
 from src.utils.io_utils import ROOT_PATH, read_json, write_json
@@ -84,8 +85,11 @@ class MainDataset(BaseDataset):
         audio_path = self.data_root / "dla_dataset" / "audio" / name 
         mouths_path  =  self.data_root / "dla_dataset" / "mouths"
         
-
+     
         for item in tqdm((audio_path / "mix").iterdir()):
+            
+            
+            
             # create dataset
             item_name = item.name
 
@@ -103,9 +107,42 @@ class MainDataset(BaseDataset):
             info = torchaudio.info(audio_mix_path)
             data_instance["length"] = info.num_frames / info.sample_rate
             data_instance["mouths_path"] = str(mouths_path / item_name)
+            
+            mouth1_name, mouth2_name = item_name[:-4].split("_")
+            mouth1_npz = str(mouths_path / mouth1_name) + ".npz"
+            mouth2_npz = str(mouths_path / mouth2_name) + ".npz"
+
+            mouths_emb_dir = self.data_root / "dla_dataset" / "mouth_embeddings"
+            os.makedirs(mouths_emb_dir, exist_ok = True)
+            data_instance["mouth1_emb_path"] = self.get_mouth_embeddings(mouth_path=mouth1_npz,
+             mouth_name=mouth1_name,
+             save_dir=mouths_emb_dir)
+            data_instance["mouth2_emb_path"] = self.get_mouth_embeddings(mouth_path=mouth2_npz,
+             mouth_name=mouth2_name,
+             save_dir=mouths_emb_dir)
+
             index.append(data_instance)
 
         # write index to disk
         write_json(index, str(index_path))
    
         return index
+
+
+    def get_mouth_embeddings(self, mouth_path, mouth_name, save_dir):
+        
+        save_path = str(save_dir) + "\\" + str(mouth_name) + ".npz"
+        
+        if os.path.exists(save_path):
+            return save_path
+        command = [
+        "python", "Lipreading_using_Temporal_Convolutional_Networks/main.py",
+        "--modality", "video",
+        "--extract-feats",
+        "--config-path", "Lipreading_using_Temporal_Convolutional_Networks/configs/lrw_resnet18_dctcn_boundary.json",  
+        "--model-path", "Lipreading_using_Temporal_Convolutional_Networks/models/lrw_resnet18_dctcn_video_boundary.pth",
+        "--mouth-patch-path", mouth_path,
+        "--mouth-embedding-out-path", save_path
+        ]
+        result = subprocess.run(command, capture_output=True)
+        return save_path

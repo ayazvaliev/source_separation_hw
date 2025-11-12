@@ -4,6 +4,8 @@ from typing import List
 from hydra.utils import instantiate
 import torchaudio
 from pathlib import Path
+import numpy as np
+import copy
 
 
 
@@ -69,7 +71,8 @@ class BaseDataset(Dataset):
                 (a single dataset element).
         """
 
-        data_dict = self._index[ind]
+        data_dict = copy.deepcopy(self._index[ind])
+        
 
         audio_names = ["audio_s1", "audio_s2", "audio_mix"]
         data_dict.update(
@@ -78,7 +81,21 @@ class BaseDataset(Dataset):
                 for name in audio_names
             }
         )
+
+        
+        mouth_emb_paths = ["mouth1_emb_path", "mouth2_emb_path"]
+        
+        temp_dict = {}
+        for name in mouth_emb_paths:
+
+            file = np.load(data_dict[name]) 
+            temp_dict[name] = file["data"]
+            
+        
+        data_dict.update(temp_dict)
+
         data_dict = self.preprocess_data(data_dict)
+        
         return data_dict
 
     def __len__(self):

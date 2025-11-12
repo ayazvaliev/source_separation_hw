@@ -211,3 +211,7 @@ outputs
 dla_dataset
 wandb
 test_*
+
+#Большие файлы с датасетом и индексом
+dla_dataset/
+indexes/
