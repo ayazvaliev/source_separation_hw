@@ -2,8 +2,15 @@ import torch
 import torch.optim as optim
 
 class WarmupWithCosAnnealing:
-    def __init__(self, optimizer, total_steps, warmup_ratio, start_factor):
+    def __init__(self, optimizer, total_steps, warmup_ratio, start_factor=None):
         warmup_steps = int(total_steps * warmup_ratio)
+        if warmup_steps == 0:
+            self._lr_scheduler = optim.lr_scheduler.CosineAnnealingLR(
+                optimizer,
+                T_max=total_steps
+            )
+            return
+        assert start_factor is not None
         warmup_scheduler = optim.lr_scheduler.LinearLR(
             optimizer,
             start_factor=start_factor,

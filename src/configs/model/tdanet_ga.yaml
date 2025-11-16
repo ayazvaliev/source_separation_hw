@@ -1,0 +1,16 @@
+_target_: src.model.TDANet
+num_frames: 32000
+mixture_dim: 512
+num_speakers: 2
+stem_kernel_size: 72
+stem_padding: 11
+decoder_kernel_size: 5
+num_layers: 3
+rate: 2
+use_la: true
+use_ga: false
+num_blocks: 16
+ga_nhead: 8
+ga_heads_dim: 64
+ga_dropout: 0.1
+ga_kernel_size: 5

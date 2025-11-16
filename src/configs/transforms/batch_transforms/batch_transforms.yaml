@@ -5,16 +5,6 @@ train:
     max_snr_in_db: 4
     shuffle_batch: true
 
-  get_spectrogram:
-    _target_: src.transforms.LogMelSpecTransform
-    sample_rate: 16000
-    n_fft: 400
-    win_length: 400
-    hop_length: 160
-    n_mels: 80
-    top_db: 80
-    power: 2.0
-
   audio_s1:
     _target_: torch.nn.Sequential
     _args_:
@@ -58,5 +48,4 @@ train:
     output_type: tensor
     p: 1.0
 
-inference:
-  get_spectrogram: ${transforms.batch_transforms.train.get_spectrogram}
+inference: null

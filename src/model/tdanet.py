@@ -2,7 +2,6 @@ import torch
 import torch.nn as nn
 import torch.nn.functional as F
 import math
-from math import ceil
 
 
 class PositionalEncoding(nn.Module):
@@ -363,8 +362,7 @@ class TDANet(nn.Module):
                 residuals = self.ga_block(*encoder_out)[::-1]
             else:
                 residuals = encoder_out
-            print('residuals', [residual.shape for residual in residuals])
             x = self.decoder(residuals[::-1])
 
         applied_masks = (self.mask_gen(x).view(batch_size, self.mixture_dim, self.num_speakers, -1) * r.unsqueeze(2)).view(batch_size, self.mixture_dim * self.num_speakers, -1)
-        return self.reconstruction_conv(applied_masks)
+        return {"logits": applied_masks}
