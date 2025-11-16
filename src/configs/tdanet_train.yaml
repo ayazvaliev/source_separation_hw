@@ -29,6 +29,7 @@ trainer:
   n_epochs: 200
   gradient_accumulation: null
   max_grad_norm: 5
+  mixed_precision: float32
   compile: True
   ts_compile: False # врубает торчскриптовский jit. Не работает с автокастом >:(
   device_tensors: ["audio_s1", "audio_s2", "audio_mix"] # which tensors should be on device (ex. GPU)
