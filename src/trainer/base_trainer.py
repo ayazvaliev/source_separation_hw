@@ -149,7 +149,7 @@ class BaseTrainer:
             self.device, enabled=self.mixed_precision is not torch.float32
         )
 
-        self.torchscript = self.cfg_trainer.get("use_jit", False)
+        self.torchscript = self.cfg_trainer.get("ts_compile", False)
 
         # define checkpoint dir and init everything if required
         if self.cfg_trainer.get("resume_from") is not None:
