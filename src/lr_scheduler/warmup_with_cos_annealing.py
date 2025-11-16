@@ -1,4 +1,3 @@
-import torch
 import torch.optim as optim
 
 class WarmupWithCosAnnealing:
@@ -27,16 +26,16 @@ class WarmupWithCosAnnealing:
         )
 
     def __getattr__(self, name):
-        return getattr(self._target, name)
+        return getattr(self._lr_scheduler, name)
 
     def __setattr__(self, name, value):
         if name == "_lr_scheduler":
-            self._lr_scheduler = value
+            pass
         else:
-            setattr(self._target, name, value)
+            setattr(self._lr_scheduler, name, value)
     
     def __delattr__(self, name):
         if name == "_lr_scheduler":
             super().__delattr__(name)
         else:
-            delattr(self._target, name)
+            delattr(self._lr_scheduler, name)
