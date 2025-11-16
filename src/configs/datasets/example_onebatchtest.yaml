@@ -1,7 +1,7 @@
 train:
   _target_: src.datasets.MainDataset
-  input_length: ${data_root}
-  dataset_length: ${index_dir}
+  data_root: ${data_root}
+  index_dir: ${index_dir}
   name: train
   sr: 16000
   instance_transforms: ${transforms.instance_transforms.train}
@@ -15,4 +15,3 @@ val:
   sr: 16000
   instance_transforms: ${transforms.instance_transforms.inference}
   limit: 20
-  
