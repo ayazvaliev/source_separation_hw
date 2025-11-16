@@ -24,25 +24,25 @@ train:
         rollover: True
         sample_rate: 16000
         output_type: tensor
-        p: 0.5
+        p: 0.3
       - _target_: torch_audiomentations.Gain
         min_gain_in_db: -8.0
         max_gain_in_db: 8.0
         sample_rate: 16000
         output_type: tensor
-        p: 0.7
+        p: 0.5
       - _target_: torch_audiomentations.PitchShift
         min_transpose_semitones: -3.0
         max_transpose_semitones: 3.0
         sample_rate: 16000
         output_type: tensor
-        p: 0.35
+        p: 0.3
       - _target_: torch_audiomentations.AddColoredNoise
         min_snr_in_db: 20
         max_snr_in_db: 35
         sample_rate: 16000
         output_type: tensor
-        p: 0.5
+        p: 0.3
       - _target_: torch_audiomentations.PeakNormalization
         apply_to: only_too_loud_sounds
         sample_rate: 16000
