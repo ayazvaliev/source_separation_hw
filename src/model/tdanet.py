@@ -322,6 +322,9 @@ class TDANet(nn.Module):
                       stride=stem_kernel_size//4,
                       padding=stem_padding
                       )
+        torch.nn.init.xavier_uniform_(self.encoder_stem.weight)
+
+        self.ln = nn.LayerNorm(normalized_shape=mixture_dim)
 
         time_dim = (num_frames + 2 * stem_padding - stem_kernel_size) // (stem_kernel_size // 4) + 1
         last_time_dim = time_dim // (rate**(num_layers))
@@ -362,6 +365,8 @@ class TDANet(nn.Module):
                                                      stride=stem_kernel_size // 4,
                                                      padding=stem_padding,
                                                      groups=num_speakers)
+        torch.nn.init.xavier_uniform_(self.reconstruction_conv.weight)
+
         self.concat_block = nn.Sequential(
             nn.Conv1d(in_channels=mixture_dim,
                       out_channels=mixture_dim,
@@ -375,6 +380,7 @@ class TDANet(nn.Module):
         batch_size = x.size(0)
 
         r = self.encoder_stem(x)
+        r = self.ln(r.transpose(1, 2)).transpose(1, 2)
         x = torch.zeros_like(r)
         for i in range(self.num_blocks):
             encoder_out = self.encoder(self.concat_block(x + r))
