@@ -59,8 +59,9 @@ class Trainer(BaseTrainer):
                 saved_loss *= self.iters_to_accumulate
             metrics.update(loss_name, saved_loss)
 
-        for met in metric_funcs:
-            metrics.update(met.name, met(**batch))
+        with torch.no_grad():
+            for met in metric_funcs:
+                metrics.update(met.name, met(**batch))
         return batch
 
     def _log_batch(self, batch_idx, batch, mode="train"):
