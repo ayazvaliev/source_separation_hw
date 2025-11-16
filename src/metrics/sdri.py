@@ -8,7 +8,7 @@ from torchmetrics.functional.audio import (
 from src.metrics.metric_utils import gather_by_perm
 
 
-class SISNRi(BaseMetric):
+class SDRi(BaseMetric):
     def __init__(self, name=None):
             super().__init__(name)
 
