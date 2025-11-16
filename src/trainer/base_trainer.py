@@ -552,10 +552,11 @@ class BaseTrainer:
                 checkpoint-epochEpochNumber.pth)
         """
         arch = type(self.model).__name__
+        model_state_dict =  self.model_._orig_mod.state_dict() if getattr(self.model_, "_orig_mod", None) is not None else self.model_.state_dict()
         state = {
             "arch": arch,
             "epoch": epoch,
-            "state_dict": self.model_.state_dict(),
+            "state_dict": model_state_dict,
             "optimizer": self.optimizer.state_dict(),
             "lr_scheduler": self.lr_scheduler.state_dict(),
             "monitor_best": self.mnt_best,
