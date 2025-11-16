@@ -30,7 +30,10 @@ class Trainer(BaseTrainer):
         with torch.autocast(
             self.device, dtype=mixed_precision, enabled=mixed_precision is not torch.float32
         ):
-            outputs = self.model(**batch)
+            if self.cfg_trainer.get("compile"):
+                outputs = self.model(batch["audio_mix"])
+            else:
+                outputs = self.model(**batch)
             batch.update(outputs)
 
             all_losses = self.criterion(**batch)
