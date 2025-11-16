@@ -11,7 +11,6 @@ from src.utils.io_utils import ROOT_PATH, read_json, write_json
 
 
 class MainDataset(BaseDataset):
-
     def __init__(
         self,
         data_root,

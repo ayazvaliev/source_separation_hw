@@ -65,7 +65,7 @@ def get_dataloaders(config, device):
 
     # dataset partitions init
     datasets = instantiate(config.datasets)  # instance transforms are defined inside
-    for dataset, part in zip(datasets, config.datasets.keys()):
+    for part, dataset in datasets.item():
         print(f'{part} dataset size: {len(dataset)}')
         
 

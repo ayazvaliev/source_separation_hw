@@ -30,7 +30,8 @@ class DWConv(nn.Module):
                  input_channel,
                  time_dim,
                  stride=1,
-                 dilation=1):
+                 dilation=1,
+                 use_act=True):
         super().__init__()
         self.dw_conv = nn.Conv1d(in_channels=input_channel,
                                  out_channels=input_channel,
@@ -39,11 +40,14 @@ class DWConv(nn.Module):
                                  padding=padding,
                                  dilation=dilation,
                                  groups=input_channel)
-        self.gl_norm = nn.LayerNorm(normalized_shape=(input_channel, time_dim))
-        self.act = nn.PReLU()
+        self.gl_norm = nn.LayerNorm(normalized_shape=input_channel)
+        if use_act:
+            self.act = nn.PReLU()
+        else:
+            self.act = nn.Identity()
     
     def forward(self, x: torch.Tensor):
-        return self.act(self.gl_norm(self.dw_conv(x)))
+        return self.act(self.gl_norm(self.dw_conv(x).transpose(1, 2))).transpose(1, 2)
 
 
 class FFN(nn.Module):
@@ -82,12 +86,12 @@ class FFN(nn.Module):
             ),
             nn.ReLU()
         )
-        self.gln_narrow = nn.LayerNorm(normalized_shape=(input_channel, time_dim))
+        self.gln_narrow = nn.LayerNorm(normalized_shape=input_channel)
 
     def forward(self, x: torch.Tensor):
-        x = self.gln_expand(self.channel_expand(x))
+        x = self.gln_expand(self.channel_expand(x).transpose(1, 2)).transpose(1, 2)
         x = self.bottleneck(x)
-        x = self.gln_narrow(self.channel_narrow(x))
+        x = self.gln_narrow(self.channel_narrow(x).tranpose(1, 2)).tranpose(1, 2)
         return x
 
 
@@ -256,14 +260,22 @@ class Decoder(nn.Module):
         self.use_attn = use_attn
         self.convs = nn.ModuleList(
             [
-                DWConv(input_channel=mixture_dim, kernel_size=kernel_size, padding=kernel_size // 2, time_dim=time_dim * upsample_rate**(i + 1))
+                DWConv(input_channel=mixture_dim, 
+                       kernel_size=kernel_size, 
+                       padding=kernel_size // 2, 
+                       time_dim=time_dim * upsample_rate**(i + 1),
+                       use_act=False)
                 for i in range(upsample_num_layers)
             ]
         )
         if self.use_attn:
             self.attn_convs = nn.ModuleList(
                 [
-                    DWConv(input_channel=mixture_dim, kernel_size=kernel_size, padding=kernel_size // 2, time_dim=time_dim * upsample_rate**(i + 1))
+                    DWConv(input_channel=mixture_dim, 
+                           kernel_size=kernel_size, 
+                           padding=kernel_size // 2, 
+                           time_dim=time_dim * upsample_rate**(i + 1),
+                           use_act=False)
                     for i in range(upsample_num_layers)
                 ]
             )
@@ -350,6 +362,14 @@ class TDANet(nn.Module):
                                                      stride=stem_kernel_size // 4,
                                                      padding=stem_padding,
                                                      groups=num_speakers)
+        self.concat_block = nn.Sequential(
+            nn.Conv1d(in_channels=mixture_dim,
+                      out_channels=mixture_dim,
+                      kernel_size=1,
+                      stride=1,
+                      groups=mixture_dim),
+            nn.PReLU()
+        )
     
     def forward(self, x: torch.Tensor):
         batch_size = x.size(0)
@@ -357,7 +377,7 @@ class TDANet(nn.Module):
         r = self.encoder_stem(x)
         x = torch.zeros_like(r)
         for i in range(self.num_blocks):
-            encoder_out = self.encoder(x + r)
+            encoder_out = self.encoder(self.concat_block(x + r))
             if self.use_ga:
                 residuals = self.ga_block(*encoder_out)[::-1]
             else:
