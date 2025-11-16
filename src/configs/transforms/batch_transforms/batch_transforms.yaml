@@ -1,8 +1,8 @@
 train:
   get_mix:
     _target_: src.transforms.Mix
-    min_snr_in_db: -4
-    max_snr_in_db: 4
+    min_snr_in_db: -5
+    max_snr_in_db: 5
     shuffle_batch: true
 
   audio_s1:
@@ -16,8 +16,8 @@ train:
         output_type: tensor
         p: 0.3
       - _target_: torch_audiomentations.Gain
-        min_gain_in_db: -8.0
-        max_gain_in_db: 8.0
+        min_gain_in_db: -4
+        max_gain_in_db: 4
         sample_rate: 16000
         output_type: tensor
         p: 0.5
