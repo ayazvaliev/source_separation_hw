@@ -4,11 +4,9 @@ train: # metrics that are calculated during training
 inference: # metrics that are calculated during inference (eval)
   - _target_: src.metrics.SISNRi
     name: SI-SNRi
-    sample_rate: 16000
 
   - _target_: src.metrics.SDRi
     name: SDRi
-    sample_rate: 16000
 
   - _target_: src.metrics.PESQ
     name: PESQ
