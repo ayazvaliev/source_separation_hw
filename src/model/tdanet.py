@@ -365,4 +365,4 @@ class TDANet(nn.Module):
             x = self.decoder(residuals[::-1])
 
         applied_masks = (self.mask_gen(x).view(batch_size, self.mixture_dim, self.num_speakers, -1) * r.unsqueeze(2)).view(batch_size, self.mixture_dim * self.num_speakers, -1)
-        return {"logits": applied_masks}
+        return {"logits": self.reconstruction_conv(applied_masks)}
