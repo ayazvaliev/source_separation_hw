@@ -11,8 +11,6 @@ class SDRi(BaseMetric):
     def __call__(self, audio_mix, audio_s1, audio_s2, logits, **batch):
         audio_mix = audio_mix.cpu().numpy()
         target_audio = torch.cat([audio_s1, audio_s2], dim=1).cpu().numpy()
-        audio_s1 = audio_s1.cpu().numpy()
-        audio_s2.audio_s2.cpu().numpy()
         logits = logits.cpu().numpy()
         accum = 0
         batch_size = audio_mix.size(0)
