@@ -1,29 +1,32 @@
 from src.metrics.base_metric import BaseMetric
-from asteroid.metrics import get_metrics
 import torch
+from torchmetrics.functional.audio import (
+     permutation_invariant_training,
+     scale_invariant_signal_distortion_ratio,
+     signal_distortion_ratio
+)
+from src.metrics.metric_utils import gather_by_perm
 
 
-class SDRi(BaseMetric):
-    def __init__(self, sample_rate, name=None):
+class SISNRi(BaseMetric):
+    def __init__(self, name=None):
             super().__init__(name)
-            self.sample_rate = sample_rate
 
     def __call__(self, audio_mix, audio_s1, audio_s2, logits, **batch):
-        batch_size = audio_mix.size(0)
-        audio_mix = audio_mix.cpu().numpy()
-        target_audio = torch.cat([audio_s1, audio_s2], dim=1).cpu().numpy()
-        logits = logits.cpu().numpy()
-        accum = 0
+        B, S, T = logits.shape
+        audio_mix = audio_mix.expand(-1, S, -1)
+        clean = torch.concat([audio_s1, audio_s2], dim=1)
 
-        for mix, clean, log in zip(audio_mix, target_audio, logits):
-            metrices = get_metrics(mix=mix,
-                                   clean=clean,
-                                   estimate=log,
-                                   sample_rate=self.sample_rate,
-                                   compute_permutation=True,
-                                   average=True,
-                                   metrics_list=["sdr"])
-            accum += (metrices['sdr'] - metrices['input_sdr']) / batch_size
-        
+        _, best_permut = permutation_invariant_training(
+             preds=logits, target=clean,
+             metric_func=scale_invariant_signal_distortion_ratio,
+             eval_func='max',
+             zero_mean=True
+        )
+        logits = gather_by_perm(logits, best_permut)
 
-        return accum
+        sdr_est = signal_distortion_ratio(logits, clean, zero_mean=True)
+        sdr_mix = signal_distortion_ratio(audio_mix, clean, zero_mean=True)
+        sdri = sdr_est - sdr_mix
+
+        return sdri.mean().item()

@@ -1,14 +1,18 @@
 train:
-  _target_: src.datasets.ExampleDataset
-  input_length: 1024
-  dataset_length: 15
-  n_classes: 10
-  limit: 10
-  name: "val"
+  _target_: src.datasets.MainDataset
+  input_length: ${data_root}
+  dataset_length: ${index_dir}
+  name: train
+  sr: 16000
+  instance_transforms: ${transforms.instance_transforms.train}
+  limit: 20
+
 val:
-  _target_: src.datasets.ExampleDataset
-  input_length: 1024
-  dataset_length: 15
-  limit: 10
-  n_classes: 10
-  name: "val"
+  _target_: src.datasets.MainDataset
+  data_root: ${data_root}
+  index_dir: ${index_dir}
+  name: val
+  sr: 16000
+  instance_transforms: ${transforms.instance_transforms.inference}
+  limit: 20
+  

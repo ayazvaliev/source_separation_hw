@@ -1,8 +1,9 @@
 train:
   get_mix:
     _target_: src.transforms.Mix
-    min_snr_in_db: -4
-    max_snr_in_db: 4
+    min_snr_in_db: -5
+    max_snr_in_db: 5
+    shuffle_batch: true
 
   audio_mix:
     _target_: torch_audiomentations.PeakNormalization

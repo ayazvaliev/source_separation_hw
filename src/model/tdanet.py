@@ -366,3 +366,19 @@ class TDANet(nn.Module):
 
         applied_masks = (self.mask_gen(x).view(batch_size, self.mixture_dim, self.num_speakers, -1) * r.unsqueeze(2)).view(batch_size, self.mixture_dim * self.num_speakers, -1)
         return {"logits": self.reconstruction_conv(applied_masks)}
+    
+
+    def __str__(self):
+        """
+        Model prints with the number of parameters.
+        """
+        all_parameters = sum([p.numel() for p in self.parameters()])
+        trainable_parameters = sum(
+            [p.numel() for p in self.parameters() if p.requires_grad]
+        )
+
+        result_info = super().__str__()
+        result_info = result_info + f"\nAll parameters: {all_parameters}"
+        result_info = result_info + f"\nTrainable parameters: {trainable_parameters}"
+
+        return result_info
