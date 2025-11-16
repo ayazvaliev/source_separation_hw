@@ -24,6 +24,8 @@ def main(config):
     """
     set_random_seed(config.trainer.seed)
 
+    torch.cuda.empty_cache()
+
     project_config = OmegaConf.to_container(config, resolve=True)
     logger = setup_saving_and_logging(config)
     writer = instantiate(config.writer, logger, project_config)
