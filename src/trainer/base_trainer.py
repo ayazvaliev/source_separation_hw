@@ -445,7 +445,7 @@ class BaseTrainer:
                     used_transforms.add(transform_name)
     
         if "get_mix" in transforms:
-            batch["audio_mix"] = transforms["get_mix"](**batch)
+            batch["audio_mix"], batch["audio_s1"], batch["audio_s2"] = transforms["get_mix"](**batch)
 
             if "audio_mix" in transforms:
                 batch["audio_mix"] = transforms["audio_mix"](batch["audio_mix"])

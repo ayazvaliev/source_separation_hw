@@ -3,6 +3,7 @@ train:
     _target_: src.transforms.Mix
     min_snr_in_db: -4
     max_snr_in_db: 4
+    shuffle_batch: true
 
   get_spectrogram:
     _target_: src.transforms.LogMelSpecTransform
