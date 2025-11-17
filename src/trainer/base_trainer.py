@@ -589,7 +589,7 @@ class BaseTrainer:
                 n_infs = torch.isinf(p).sum().item()
                 self.logger.debug(f"{name}: NaNs={n_nans}, Infs={n_infs}, shape={tuple(p.shape)}")
 
-    def _check_sd_for_nans(key, sd):
+    def _check_sd_for_nans(self, key, sd):
         bad_tensors = []
         if not isinstance(sd, dict) and torch.is_tensor(sd):
             n_nans = int(torch.isnan(sd).sum().item())
@@ -630,7 +630,7 @@ class BaseTrainer:
         total_infs = 0
         bad_tensors = []
         for sd_k in checkpoint:
-            bad_tensors.extend(self._check_sd_for_nans(checkpoint[sd_k]))
+            bad_tensors.extend(self._check_sd_for_nans(sd_k, checkpoint[sd_k]))
 
         self.logger.debug(f"Checkpoint total params: {total}")
         self.logger.debug(f"Total NaNs: {total_nans}, Total Infs: {total_infs}")
