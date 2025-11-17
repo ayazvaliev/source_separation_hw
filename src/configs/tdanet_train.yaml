@@ -26,6 +26,7 @@ loss_function:
 
 trainer:
   log_step: 50
+  val_step: 20
   n_epochs: 200
   gradient_accumulation: null
   max_grad_norm: 5

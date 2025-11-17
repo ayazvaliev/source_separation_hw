@@ -39,7 +39,8 @@ class DWConv(nn.Module):
                                  stride=stride,
                                  padding=padding,
                                  dilation=dilation,
-                                 groups=input_channel)
+                                 groups=input_channel,
+                                 bias=False)
         self.gl_norm = nn.LayerNorm(normalized_shape=input_channel)
         if use_act:
             self.act = nn.PReLU()
@@ -320,7 +321,8 @@ class TDANet(nn.Module):
                       out_channels=mixture_dim,
                       kernel_size=stem_kernel_size,
                       stride=stem_kernel_size//4,
-                      padding=stem_padding
+                      padding=stem_padding,
+                      bias=False
                       )
         torch.nn.init.xavier_uniform_(self.encoder_stem.weight)
 
@@ -353,6 +355,7 @@ class TDANet(nn.Module):
                                use_attn=use_la)
 
         self.mask_gen = nn.Sequential(
+            nn.PReLU(),
             nn.Conv1d(in_channels=mixture_dim, 
                       out_channels=num_speakers*mixture_dim,
                       kernel_size=1,
@@ -364,7 +367,7 @@ class TDANet(nn.Module):
                                                      kernel_size=stem_kernel_size,
                                                      stride=stem_kernel_size // 4,
                                                      padding=stem_padding,
-                                                     groups=num_speakers)
+                                                     groups=1)
         torch.nn.init.xavier_uniform_(self.reconstruction_conv.weight)
 
         self.concat_block = nn.Sequential(

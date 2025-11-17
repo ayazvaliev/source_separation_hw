@@ -104,6 +104,8 @@ class BaseTrainer:
         self.save_period = self.cfg_trainer.save_period  # checkpoint each save_period epochs
         self.monitor = self.cfg_trainer.get("monitor", "off")  # format: "mnt_mode mnt_metric"
 
+        self.val_step = self.cfg_trainer.get("val_step", 1)
+
         if self.monitor == "off":
             self.mnt_mode = "off"
             self.mnt_best = 0
@@ -228,9 +230,12 @@ class BaseTrainer:
 
             # evaluate model performance according to configured metric,
             # save best checkpoint as model_best
-            best, stop_process, not_improved_count = self._monitor_performance(
-                logs, not_improved_count
-            )
+
+            stop_process = False
+            if epoch % self.val_step == 0:
+                best, stop_process, not_improved_count = self._monitor_performance(
+                    logs, not_improved_count
+                )
 
             if epoch % self.save_period == 0 or best:
                 self._save_checkpoint(epoch, save_best=best, only_best=True)
@@ -300,9 +305,10 @@ class BaseTrainer:
         logs = last_train_metrics
 
         # Run val/test
-        for part, dataloader in self.evaluation_dataloaders.items():
-            val_logs = self._evaluation_epoch(epoch, part, dataloader)
-            logs.update(**{f"{part}_{name}": value for name, value in val_logs.items()})
+        if epoch % self.val_step == 0:
+            for part, dataloader in self.evaluation_dataloaders.items():
+                val_logs = self._evaluation_epoch(epoch, part, dataloader)
+                logs.update(**{f"{part}_{name}": value for name, value in val_logs.items()})
 
         return logs
 
@@ -388,7 +394,7 @@ class BaseTrainer:
                 not_improved_count = 0
                 best = True
             else:
-                not_improved_count += 1
+                not_improved_count += self.val_step
 
             if not_improved_count >= self.early_stop:
                 self.logger.info(
