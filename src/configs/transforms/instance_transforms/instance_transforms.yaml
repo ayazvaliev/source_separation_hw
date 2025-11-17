@@ -1,13 +1,10 @@
 train:
   get_spectrogram: # возвращает мелспеку в формате [channels, freq, time]
-    _target_: src.transforms.LogMelSpecTransform
-    sample_rate: 16000
+    _target_: torchaudio.transforms.Spectogram
     n_fft: 400
     win_length: 400
     hop_length: 160
-    n_mels: 80
-    top_db: 80
-    power: 2.0
+    power: None
 
   # Накидал дефолтных wav аугментаций из torch audiomentations, чтоб понятно было как юзать
   # Ссылку на каггловский датасет с аугами скину в тг :D
