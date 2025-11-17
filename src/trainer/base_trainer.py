@@ -682,8 +682,6 @@ class BaseTrainer:
             else:
                 self.model = self.model_
 
-        self._initialize_optimizer()
-
         # load optimizer state from checkpoint only when optimizer type is not changed.
         if checkpoint["config"]["optimizer"] != self.config["optimizer"]:
             self.logger.warning(
