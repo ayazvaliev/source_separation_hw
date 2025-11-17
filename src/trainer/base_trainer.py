@@ -291,13 +291,17 @@ class BaseTrainer:
             if batch_idx % self.log_step == 0:
                 if self.writer is not None:
                     self.writer.set_step((epoch - 1) * self.epoch_len + batch_idx)
-                    self.writer.add_scalar("learning rate", self.lr_scheduler.get_last_lr()[0])
+                    last_lr = self.lr_scheduler.get_last_lr()[0]
+                    self.writer.add_scalar("learning rate", last_lr)
                     self._log_scalars(self.train_metrics)
                     self._log_batch(batch_idx, batch)
                 self.logger.debug(
                     "Train Epoch: {} {} Loss: {:.6f}".format(
                         epoch, self._progress(batch_idx), batch["loss"].item()
                     )
+                )
+                self.logger.debug(
+                    f"Current LR: {last_lr}"
                 )
                 self._check_model_for_nans()
                 # we don't want to reset train metrics at the start of every epoch
