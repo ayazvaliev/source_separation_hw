@@ -8,7 +8,7 @@ decoder_kernel_size: 5
 num_layers: 3
 rate: 2
 use_la: true
-use_ga: false
+use_ga: true
 num_blocks: 16
 ga_nhead: 8
 ga_heads_dim: 64
