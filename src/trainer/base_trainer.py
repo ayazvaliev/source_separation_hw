@@ -597,6 +597,8 @@ class BaseTrainer:
             bad_tensors.append((key, "-", sd.shape, sd.dtype, n_nans, n_infs))
         elif isinstance(sd, dict):
             total = 0
+            total_nans = 0
+            total_infs = 0
             for k, t in sd.items():
                 if not torch.is_tensor(t):
                     continue
