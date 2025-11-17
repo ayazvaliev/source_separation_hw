@@ -42,6 +42,9 @@ def main(config):
     # build model architecture, then print to console
     model = instantiate(config.model).to(device)
     logger.info(model)
+    if config.trainer.get("compile", False):
+        assert not config.trainer.get("ts_compile", False)
+        model = torch.compile(model, fullgraph=True, mode='reduce-overhead')
         
     # get function handles of loss and metrics
     metrics = instantiate(config.metrics)

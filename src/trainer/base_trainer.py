@@ -152,9 +152,6 @@ class BaseTrainer:
         )
 
         self.torchscript = self.cfg_trainer.get("ts_compile", False)
-        self.torch_compile = self.cfg_trainer.get("compile", False)
-
-        assert not (self.torch_compile and self.torchscript)
 
         optimizer_sd, lr_scheduler_sd = None, None
         # define checkpoint dir and init everything if required
@@ -165,12 +162,9 @@ class BaseTrainer:
             self._from_pretrained(self.cfg_trainer.get("from_pretrained"))
             if self.torchscript:
                 self.model = torch.jit.script(self.model_)
-            elif self.torch_compile:
-                self.model = torch.compile(self.model_, fullgraph=True, mode='reduce-overhead')
             else:
                 self.model = self.model_
         else:
-            self.model_.to(self.device)
             if self.torchscript:
                 self.model = torch.jit.script(self.model_)
             else:
@@ -673,12 +667,13 @@ class BaseTrainer:
                 "of the checkpoint. This may yield an exception when state_dict is loaded."
             )
         else:
-            self.model_.load_state_dict(checkpoint["state_dict"])
+            if getattr(self.model, "_orig_mod", None) is not None:
+                self.model_._orig_mod.load_state_dict(checkpoint["state_dict"])
+            else:
+                self.model_.load_state_dict(checkpoint["state_dict"])
             self._check_model_for_nans()
             if self.torchscript:
                 self.model = torch.jit.script(self.model_)
-            elif self.torch_compile:
-                self.model = torch.compile(self.model_, fullgraph=True, mode='reduce-overhead')
             else:
                 self.model = self.model_
 
