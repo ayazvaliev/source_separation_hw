@@ -156,10 +156,11 @@ class BaseTrainer:
 
         assert not (self.torch_compile and self.torchscript)
 
+        optimizer_sd, lr_scheduler_sd = None, None
         # define checkpoint dir and init everything if required
         if self.cfg_trainer.get("resume_from") is not None:
             resume_path = self.checkpoint_dir / self.cfg_trainer.resume_from
-            self._resume_checkpoint(resume_path)
+            optimizer_sd, lr_scheduler_sd = self._resume_checkpoint(resume_path)
         elif self.cfg_trainer.get("from_pretrained") is not None:
             self._from_pretrained(self.cfg_trainer.get("from_pretrained"))
             if self.torchscript:
@@ -175,9 +176,10 @@ class BaseTrainer:
             else:
                 self.model = self.model_
 
-        self._initialize_optimizer()
+        if self.cfg_trainer.get("from_pretrained", None) is None:
+            self._initialize_optimizer(optimizer_sd, lr_scheduler_sd)
 
-    def _initialize_optimizer(self):
+    def _initialize_optimizer(self, optimizer_sd, lr_scheduler_sd):
         grouped_trainable_params = get_optimizer_grouped_parameters(
             self.model, self.config.optimizer.weight_decay
         )
@@ -200,6 +202,10 @@ class BaseTrainer:
                 self.config.lr_scheduler,
                 optimizer=self.optimizer
             )
+        if optimizer_sd is not None:
+            self.optimizer.load_state_dict(optimizer_sd)
+        if lr_scheduler_sd is not None:
+            self.lr_scheduler.load_state_dict(lr_scheduler_sd)
 
     def train(self):
         """
@@ -685,11 +691,10 @@ class BaseTrainer:
                 "from that of the checkpoint. Optimizer and scheduler parameters "
                 "are not resumed."
             )
-        else:
-            self.optimizer.load_state_dict(checkpoint["optimizer"])
-            self.lr_scheduler.load_state_dict(checkpoint["lr_scheduler"])
 
         self.logger.info(f"Checkpoint loaded. Resume training from epoch {self.start_epoch}")
+
+        return checkpoint["optimizer"], checkpoint["lr_scheduler"]
 
     def _from_pretrained(self, pretrained_path):
         """
