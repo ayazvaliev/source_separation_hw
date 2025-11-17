@@ -632,7 +632,7 @@ class BaseTrainer:
         """
         resume_path = str(resume_path)
         self.logger.info(f"Loading checkpoint: {resume_path} ...")
-        checkpoint = torch.load(resume_path, weights_only=False, map_location="cpu")
+        checkpoint = torch.load(resume_path, weights_only=False, map_location=self.device)
 
         total = 0
         total_nans = 0
@@ -657,8 +657,11 @@ class BaseTrainer:
                 "of the checkpoint. This may yield an exception when state_dict is loaded."
             )
         else:
-            self.model_.to("cpu")
-            self.model_.load_state_dict(checkpoint["state_dict"])
+            if getattr(self.model_, "_orig_mod", None) is not None:
+                self.model_._orig_mod.load_state_dict(checkpoint["state_dict"])
+            else:
+                self.model_.load_state_dict(checkpoint["state_dict"])
+
             self.model_.to(self.device)
             self._check_model_for_nans()
             if self.torchscript:
