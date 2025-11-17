@@ -152,6 +152,9 @@ class BaseTrainer:
         )
 
         self.torchscript = self.cfg_trainer.get("ts_compile", False)
+        self.torch_compile = self.cfg_trainer.get("compile", False)
+
+        assert not (self.torch_compile and self.torchscript)
 
         # define checkpoint dir and init everything if required
         if self.cfg_trainer.get("resume_from") is not None:
@@ -161,6 +164,8 @@ class BaseTrainer:
             self._from_pretrained(self.cfg_trainer.get("from_pretrained"))
             if self.torchscript:
                 self.model = torch.jit.script(self.model_)
+            elif self.torch_compile:
+                self.model = torch.compile(self.model_, fullgraph=True, mode='reduce-overhead')
             else:
                 self.model = self.model_
         else:
@@ -558,7 +563,10 @@ class BaseTrainer:
                 checkpoint-epochEpochNumber.pth)
         """
         arch = type(self.model).__name__
-        model_state_dict =  self.model_._orig_mod.state_dict() if getattr(self.model_, "_orig_mod", None) is not None else self.model_.state_dict()
+        if self.torchscript:
+            model_state_dict = self.model_.state_dict()
+        else:
+            model_state_dict = self.model._orig_mod.state_dict() if getattr(self.model_, "_orig_mod", None) is not None else self.model.state_dict()
         state = {
             "arch": arch,
             "epoch": epoch,
@@ -634,18 +642,16 @@ class BaseTrainer:
         self.logger.info(f"Loading checkpoint: {resume_path} ...")
         checkpoint = torch.load(resume_path, weights_only=False, map_location=self.device)
 
-        total = 0
-        total_nans = 0
-        total_infs = 0
         bad_tensors = []
         for sd_k in checkpoint:
             bad_tensors.extend(self._check_sd_for_nans(sd_k, checkpoint[sd_k]))
 
-        self.logger.debug(f"Checkpoint total params: {total}")
-        self.logger.debug(f"Total NaNs: {total_nans}, Total Infs: {total_infs}")
-        self.logger.debug("Bad tensors (state dict name, name, shape, dtype, #NaNs, #Infs):")
-        for row in bad_tensors:
-            self.logger.debug(row)
+        if len(bad_tensors) == 0:
+            self.logger.debug("All tensors were loaded without an issue")
+        else:
+            self.logger.debug("Bad tensors (state dict name, name, shape, dtype, #NaNs, #Infs):")
+            for row in bad_tensors:
+                self.logger.debug(row)
 
         self.start_epoch = checkpoint["epoch"] + 1
         self.mnt_best = checkpoint["monitor_best"]
@@ -657,15 +663,12 @@ class BaseTrainer:
                 "of the checkpoint. This may yield an exception when state_dict is loaded."
             )
         else:
-            if getattr(self.model_, "_orig_mod", None) is not None:
-                self.model_._orig_mod.load_state_dict(checkpoint["state_dict"])
-            else:
-                self.model_.load_state_dict(checkpoint["state_dict"])
-
-            self.model_.to(self.device)
+            self.model_.load_state_dict(checkpoint["state_dict"])
             self._check_model_for_nans()
             if self.torchscript:
                 self.model = torch.jit.script(self.model_)
+            elif self.torch_compile:
+                self.model = torch.compile(self.model_, fullgraph=True, mode='reduce-overhead')
             else:
                 self.model = self.model_
 
