@@ -24,6 +24,8 @@ def main(config):
     """
     set_random_seed(config.trainer.seed)
 
+    torch.cuda.empty_cache()
+
     project_config = OmegaConf.to_container(config, resolve=True)
     logger = setup_saving_and_logging(config)
     writer = instantiate(config.writer, logger, project_config)
@@ -40,7 +42,10 @@ def main(config):
     # build model architecture, then print to console
     model = instantiate(config.model).to(device)
     logger.info(model)
-
+    if config.trainer.get("compile", False):
+        assert not config.trainer.get("ts_compile", False)
+        model = torch.compile(model, fullgraph=True, mode='reduce-overhead')
+        
     # get function handles of loss and metrics
     metrics = instantiate(config.metrics)
 

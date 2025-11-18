@@ -16,6 +16,10 @@ flashlight-text
 gdown
 datasets
 yadisk
+asteroid
+pesq
+pystoi
+museval
 
 
 black

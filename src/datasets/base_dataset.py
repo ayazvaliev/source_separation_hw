@@ -49,9 +49,9 @@ class BaseDataset(Dataset):
                 tensor name.
         """
         self._assert_index_is_valid(index)
-        self._index: List[dict] = self._filter_records_from_dataset(index, min_audio_length, max_audio_length)
+        self._index = self._filter_records_from_dataset(index, min_audio_length, max_audio_length)
         self.target_sr = sr
-        index = self._shuffle_and_limit_index(index, limit, shuffle_index)
+        self._index = self._shuffle_and_limit_index(index, limit, shuffle_index)
 
         self.instance_transforms = instance_transforms or {}
 
@@ -160,7 +160,7 @@ class BaseDataset(Dataset):
                 the dataset that satisfied the condition. The dict has
                 required metadata information, such as label and object path.
         """
-        if "audio_mix_time" not in index[0]:
+        if "length" not in index[0] or (min_audio_length is None and max_audio_length is None):
             return index
 
         initial_size = len(index)

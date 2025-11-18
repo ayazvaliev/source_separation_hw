@@ -104,6 +104,8 @@ class BaseTrainer:
         self.save_period = self.cfg_trainer.save_period  # checkpoint each save_period epochs
         self.monitor = self.cfg_trainer.get("monitor", "off")  # format: "mnt_mode mnt_metric"
 
+        self.val_step = self.cfg_trainer.get("val_step", 1)
+
         if self.monitor == "off":
             self.mnt_mode = "off"
             self.mnt_best = 0
@@ -149,12 +151,13 @@ class BaseTrainer:
             self.device, enabled=self.mixed_precision is not torch.float32
         )
 
-        self.torchscript = self.cfg_trainer.get("use_jit", False)
+        self.torchscript = self.cfg_trainer.get("ts_compile", False)
 
+        optimizer_sd, lr_scheduler_sd = None, None
         # define checkpoint dir and init everything if required
         if self.cfg_trainer.get("resume_from") is not None:
             resume_path = self.checkpoint_dir / self.cfg_trainer.resume_from
-            self._resume_checkpoint(resume_path)
+            optimizer_sd, lr_scheduler_sd = self._resume_checkpoint(resume_path)
         elif self.cfg_trainer.get("from_pretrained") is not None:
             self._from_pretrained(self.cfg_trainer.get("from_pretrained"))
             if self.torchscript:
@@ -162,15 +165,15 @@ class BaseTrainer:
             else:
                 self.model = self.model_
         else:
-            self.model_.to(self.device)
             if self.torchscript:
                 self.model = torch.jit.script(self.model_)
             else:
                 self.model = self.model_
 
-        self._initialize_optimizer()
+        if self.cfg_trainer.get("from_pretrained", None) is None:
+            self._initialize_optimizer(optimizer_sd, lr_scheduler_sd)
 
-    def _initialize_optimizer(self):
+    def _initialize_optimizer(self, optimizer_sd, lr_scheduler_sd):
         grouped_trainable_params = get_optimizer_grouped_parameters(
             self.model, self.config.optimizer.weight_decay
         )
@@ -193,6 +196,10 @@ class BaseTrainer:
                 self.config.lr_scheduler,
                 optimizer=self.optimizer
             )
+        if optimizer_sd is not None:
+            self.optimizer.load_state_dict(optimizer_sd)
+        if lr_scheduler_sd is not None:
+            self.lr_scheduler.load_state_dict(lr_scheduler_sd)
 
     def train(self):
         """
@@ -228,12 +235,15 @@ class BaseTrainer:
 
             # evaluate model performance according to configured metric,
             # save best checkpoint as model_best
-            best, stop_process, not_improved_count = self._monitor_performance(
-                logs, not_improved_count
-            )
 
-            if epoch % self.save_period == 0 or best:
-                self._save_checkpoint(epoch, save_best=best, only_best=True)
+            stop_process = False
+            if epoch % self.val_step == 0:
+                best, stop_process, not_improved_count = self._monitor_performance(
+                    logs, not_improved_count
+                )
+
+                if epoch % self.save_period == 0 or best:
+                    self._save_checkpoint(epoch, save_best=best, only_best=True)
 
             if stop_process:  # early_stop
                 break
@@ -281,13 +291,17 @@ class BaseTrainer:
             if batch_idx % self.log_step == 0:
                 if self.writer is not None:
                     self.writer.set_step((epoch - 1) * self.epoch_len + batch_idx)
-                    self.writer.add_scalar("learning rate", self.lr_scheduler.get_last_lr()[0])
+                    last_lr = self.lr_scheduler.get_last_lr()[0]
+                    self.writer.add_scalar("learning rate", last_lr)
                     self._log_scalars(self.train_metrics)
                     self._log_batch(batch_idx, batch)
                 self.logger.debug(
                     "Train Epoch: {} {} Loss: {:.6f}".format(
                         epoch, self._progress(batch_idx), batch["loss"].item()
                     )
+                )
+                self.logger.debug(
+                    f"Current LR: {last_lr}"
                 )
                 self._check_model_for_nans()
                 # we don't want to reset train metrics at the start of every epoch
@@ -300,9 +314,10 @@ class BaseTrainer:
         logs = last_train_metrics
 
         # Run val/test
-        for part, dataloader in self.evaluation_dataloaders.items():
-            val_logs = self._evaluation_epoch(epoch, part, dataloader)
-            logs.update(**{f"{part}_{name}": value for name, value in val_logs.items()})
+        if epoch % self.val_step == 0:
+            for part, dataloader in self.evaluation_dataloaders.items():
+                val_logs = self._evaluation_epoch(epoch, part, dataloader)
+                logs.update(**{f"{part}_{name}": value for name, value in val_logs.items()})
 
         return logs
 
@@ -388,7 +403,7 @@ class BaseTrainer:
                 not_improved_count = 0
                 best = True
             else:
-                not_improved_count += 1
+                not_improved_count += self.val_step
 
             if not_improved_count >= self.early_stop:
                 self.logger.info(
@@ -445,7 +460,7 @@ class BaseTrainer:
                     used_transforms.add(transform_name)
     
         if "get_mix" in transforms:
-            batch["audio_mix"] = transforms["get_mix"](**batch)
+            batch["audio_mix"], batch["audio_s1"], batch["audio_s2"] = transforms["get_mix"](**batch)
 
             if "audio_mix" in transforms:
                 batch["audio_mix"] = transforms["audio_mix"](batch["audio_mix"])
@@ -552,10 +567,14 @@ class BaseTrainer:
                 checkpoint-epochEpochNumber.pth)
         """
         arch = type(self.model).__name__
+        if self.torchscript:
+            model_state_dict = self.model_.state_dict()
+        else:
+            model_state_dict = self.model._orig_mod.state_dict() if getattr(self.model_, "_orig_mod", None) is not None else self.model.state_dict()
         state = {
             "arch": arch,
             "epoch": epoch,
-            "state_dict": self.model_.state_dict(),
+            "state_dict": model_state_dict,
             "optimizer": self.optimizer.state_dict(),
             "lr_scheduler": self.lr_scheduler.state_dict(),
             "monitor_best": self.mnt_best,
@@ -588,13 +607,16 @@ class BaseTrainer:
                 n_infs = torch.isinf(p).sum().item()
                 self.logger.debug(f"{name}: NaNs={n_nans}, Infs={n_infs}, shape={tuple(p.shape)}")
 
-    def _check_sd_for_nans(key, sd):
+    def _check_sd_for_nans(self, key, sd):
         bad_tensors = []
         if not isinstance(sd, dict) and torch.is_tensor(sd):
             n_nans = int(torch.isnan(sd).sum().item())
             n_infs = int(torch.isinf(sd).sum().item())
             bad_tensors.append((key, "-", sd.shape, sd.dtype, n_nans, n_infs))
-        else:
+        elif isinstance(sd, dict):
+            total = 0
+            total_nans = 0
+            total_infs = 0
             for k, t in sd.items():
                 if not torch.is_tensor(t):
                     continue
@@ -622,20 +644,18 @@ class BaseTrainer:
         """
         resume_path = str(resume_path)
         self.logger.info(f"Loading checkpoint: {resume_path} ...")
-        checkpoint = torch.load(resume_path, weights_only=False, map_location="cpu")
+        checkpoint = torch.load(resume_path, weights_only=False, map_location=self.device)
 
-        total = 0
-        total_nans = 0
-        total_infs = 0
         bad_tensors = []
         for sd_k in checkpoint:
-            bad_tensors.extend(self._check_sd_for_nans(checkpoint[sd_k]))
+            bad_tensors.extend(self._check_sd_for_nans(sd_k, checkpoint[sd_k]))
 
-        self.logger.debug(f"Checkpoint total params: {total}")
-        self.logger.debug(f"Total NaNs: {total_nans}, Total Infs: {total_infs}")
-        self.logger.debug("Bad tensors (state dict name, name, shape, dtype, #NaNs, #Infs):")
-        for row in bad_tensors:
-            self.logger.debug(row)
+        if len(bad_tensors) == 0:
+            self.logger.debug("All tensors were loaded without an issue")
+        else:
+            self.logger.debug("Bad tensors (state dict name, name, shape, dtype, #NaNs, #Infs):")
+            for row in bad_tensors:
+                self.logger.debug(row)
 
         self.start_epoch = checkpoint["epoch"] + 1
         self.mnt_best = checkpoint["monitor_best"]
@@ -647,16 +667,15 @@ class BaseTrainer:
                 "of the checkpoint. This may yield an exception when state_dict is loaded."
             )
         else:
-            self.model_.to("cpu")
-            self.model_.load_state_dict(checkpoint["state_dict"])
-            self.model_.to(self.device)
+            if getattr(self.model, "_orig_mod", None) is not None:
+                self.model_._orig_mod.load_state_dict(checkpoint["state_dict"])
+            else:
+                self.model_.load_state_dict(checkpoint["state_dict"])
             self._check_model_for_nans()
             if self.torchscript:
                 self.model = torch.jit.script(self.model_)
             else:
                 self.model = self.model_
-
-        self._initialize_optimizer()
 
         # load optimizer state from checkpoint only when optimizer type is not changed.
         if checkpoint["config"]["optimizer"] != self.config["optimizer"]:
@@ -665,11 +684,10 @@ class BaseTrainer:
                 "from that of the checkpoint. Optimizer and scheduler parameters "
                 "are not resumed."
             )
-        else:
-            self.optimizer.load_state_dict(checkpoint["optimizer"])
-            self.lr_scheduler.load_state_dict(checkpoint["lr_scheduler"])
 
         self.logger.info(f"Checkpoint loaded. Resume training from epoch {self.start_epoch}")
+
+        return checkpoint["optimizer"], checkpoint["lr_scheduler"]
 
     def _from_pretrained(self, pretrained_path):
         """

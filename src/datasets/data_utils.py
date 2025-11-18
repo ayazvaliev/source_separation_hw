@@ -65,20 +65,23 @@ def get_dataloaders(config, device):
 
     # dataset partitions init
     datasets = instantiate(config.datasets)  # instance transforms are defined inside
+    for part, dataset in datasets.items():
+        print(f'{part} dataset size: {len(dataset)}')
+        
 
     # dataloaders init
     dataloaders = {}
     for dataset_partition in config.datasets.keys():
         dataset = datasets[dataset_partition]
 
-        assert dataset_partition != "train" or config.dataloader.batch_size <= len(dataset), (
-            f"The batch size ({config.dataloader.batch_size}) cannot "
+        assert dataset_partition == "train" or config.dataloader["inference"].batch_size <= len(dataset), (
+            f"The batch size ({config.dataloader['inference'].batch_size}) cannot "
             f"be larger than the dataset length ({len(dataset)})"
         )
-
+        dataloader_config = config.dataloader["train"] if dataset_partition == "train" else config.dataloader["inference"] 
         max_workers = os.cpu_count()
         partition_dataloader = instantiate(
-            config.dataloader,
+            dataloader_config,
             dataset=dataset,
             collate_fn=collate_fn,
             drop_last=(dataset_partition == "train"),

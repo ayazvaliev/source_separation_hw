@@ -30,7 +30,7 @@ class Trainer(BaseTrainer):
         with torch.autocast(
             self.device, dtype=mixed_precision, enabled=mixed_precision is not torch.float32
         ):
-            outputs = self.model(**batch)
+            outputs = self.model(batch["audio_mix"])
             batch.update(outputs)
 
             all_losses = self.criterion(**batch)
@@ -59,8 +59,9 @@ class Trainer(BaseTrainer):
                 saved_loss *= self.iters_to_accumulate
             metrics.update(loss_name, saved_loss)
 
-        for met in metric_funcs:
-            metrics.update(met.name, met(**batch))
+        with torch.no_grad():
+            for met in metric_funcs:
+                metrics.update(met.name, met(**batch))
         return batch
 
     def _log_batch(self, batch_idx, batch, mode="train"):

@@ -250,7 +250,7 @@ class CometMLWriter:
 
     def add_images(self, image_names, images):
         for image_name, image in zip(image_names, images):
-            self.add_image(image_name, images)
+            self.add_image(image_name, image)
 
     def add_pr_curve(self, curve_name, curve):
         raise NotImplementedError()

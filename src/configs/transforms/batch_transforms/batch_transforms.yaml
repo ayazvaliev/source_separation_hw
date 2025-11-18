@@ -1,18 +1,9 @@
 train:
   get_mix:
     _target_: src.transforms.Mix
-    min_snr_in_db: -4
-    max_snr_in_db: 4
-
-  get_spectrogram:
-    _target_: src.transforms.LogMelSpecTransform
-    sample_rate: 16000
-    n_fft: 400
-    win_length: 400
-    hop_length: 160
-    n_mels: 80
-    top_db: 80
-    power: 2.0
+    min_snr_in_db: -5
+    max_snr_in_db: 5
+    shuffle_batch: true
 
   audio_s1:
     _target_: torch.nn.Sequential
@@ -23,25 +14,25 @@ train:
         rollover: True
         sample_rate: 16000
         output_type: tensor
-        p: 0.5
+        p: 0.3
       - _target_: torch_audiomentations.Gain
-        min_gain_in_db: -8.0
-        max_gain_in_db: 8.0
+        min_gain_in_db: -4
+        max_gain_in_db: 4
         sample_rate: 16000
         output_type: tensor
-        p: 0.7
+        p: 0.5
       - _target_: torch_audiomentations.PitchShift
         min_transpose_semitones: -3.0
         max_transpose_semitones: 3.0
         sample_rate: 16000
         output_type: tensor
-        p: 0.35
+        p: 0.3
       - _target_: torch_audiomentations.AddColoredNoise
         min_snr_in_db: 20
         max_snr_in_db: 35
         sample_rate: 16000
         output_type: tensor
-        p: 0.5
+        p: 0.3
       - _target_: torch_audiomentations.PeakNormalization
         apply_to: only_too_loud_sounds
         sample_rate: 16000
@@ -57,5 +48,4 @@ train:
     output_type: tensor
     p: 1.0
 
-inference:
-  get_spectrogram: ${transforms.batch_transforms.train.get_spectrogram}
+inference: null
