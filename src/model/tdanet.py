@@ -22,6 +22,18 @@ class PositionalEncoding(nn.Module):
     def forward(self, embed: torch.Tensor):
         return embed + self.pos_embedding
 
+class GLN(nn.Module):
+    def __init__(self, input_channel):
+        super().__init__()
+        self.mean = nn.Parameter(torch.ones(input_channel), requires_grad=True)
+        self.var = nn.Parameter(torch.zeros(input_channel), requires_grad=True)
+    
+    def forward(self, x: torch.Tensor):
+        dims = list(range(1, len(x.shape)))
+        mean = x.mean(dim=dims, keepdim=True)
+        var = torch.pow(x - mean, 2).mean(dim=dims, keepdim=True)
+        x_normalized = (x - mean) / (var + 1e-8).sqrt()
+        return (self.var * x_normalized.transpose(1, 2) + self.mean).transpose(1, 2)
 
 class DWConv(nn.Module):
     def __init__(self, 
@@ -31,24 +43,29 @@ class DWConv(nn.Module):
                  time_dim,
                  stride=1,
                  dilation=1,
-                 use_act=True):
+                 use_act=True,
+                 output_channel=None,
+                 bias=True):
         super().__init__()
+        if output_channel is None:
+            output_channel = input_channel
+
         self.dw_conv = nn.Conv1d(in_channels=input_channel,
-                                 out_channels=input_channel,
+                                 out_channels=output_channel,
                                  kernel_size=kernel_size,
                                  stride=stride,
                                  padding=padding,
                                  dilation=dilation,
                                  groups=input_channel,
-                                 bias=False)
-        self.gl_norm = nn.LayerNorm(normalized_shape=input_channel)
+                                 bias=bias)
+        self.gl_norm = GLN(input_channel)
         if use_act:
             self.act = nn.PReLU()
         else:
             self.act = nn.Identity()
     
     def forward(self, x: torch.Tensor):
-        return self.act(self.gl_norm(self.dw_conv(x).transpose(1, 2))).transpose(1, 2)
+        return self.act(self.gl_norm(self.dw_conv(x)))
 
 
 class FFN(nn.Module):
@@ -69,7 +86,7 @@ class FFN(nn.Module):
             ),
             nn.ReLU()
         )
-        self.gln_expand = nn.LayerNorm(normalized_shape=(input_channel, time_dim))
+        self.gln_expand = GLN(input_channel)
         self.bottleneck = DWConv(
             kernel_size,
             stride,
@@ -87,12 +104,12 @@ class FFN(nn.Module):
             ),
             nn.ReLU()
         )
-        self.gln_narrow = nn.LayerNorm(normalized_shape=input_channel)
+        self.gln_narrow = GLN(input_channel)
 
     def forward(self, x: torch.Tensor):
-        x = self.gln_expand(self.channel_expand(x).transpose(1, 2)).transpose(1, 2)
+        x = self.gln_expand(self.channel_expand(x))
         x = self.bottleneck(x)
-        x = self.gln_narrow(self.channel_narrow(x).tranpose(1, 2)).tranpose(1, 2)
+        x = self.gln_narrow(self.channel_narrow(x))
         return x
 
 
@@ -131,7 +148,6 @@ class MHSA(nn.Module):
         )
 
         attn = attn.transpose(1,2).contiguous() # (B, T, nhead, heads_dim)
-        print('after mhsa', attn.view(B, T, N).transpose(1, 2))
         return x + attn.view(B, T, N).transpose(1, 2)
 
 
@@ -148,7 +164,6 @@ class TransformerLayer(nn.Module):
                  conv_padding
     ):
         super().__init__()
-        print('tranformer_layer time_dim', time_dim)
         self.pos_encoder = PositionalEncoding(input_channel, time_dim)
         self.mhsa = MHSA(embed_dim=input_channel, 
                          heads_dim=mhsa_heads_dim, 
@@ -171,7 +186,7 @@ class TransformerLayer(nn.Module):
 
 class Encoder(nn.Module):
     def __init__(self,
-                 mixture_dim,
+                 input_channel,
                  time_dim,
                  downsample_num_layers,
                  downsample_rate,
@@ -183,16 +198,23 @@ class Encoder(nn.Module):
             time_dims.append(time_dims[-1] // downsample_rate)
 
         conv_stride = downsample_rate
-        conv_dilation = 2
-        conv_kernel_size = 5 * downsample_rate // 2
-        conv_padding = downsample_rate * 2
+        conv_kernel_size = 2*downsample_rate + 1
+        conv_padding = conv_kernel_size // 2
+
+        self.init_conv = DWConv(input_channel=input_channel,
+                                 kernel_size=conv_kernel_size, 
+                                 stride=1, 
+                                 time_dim=time_dim,
+                                 padding=conv_kernel_size//2)
+
         self.convs = nn.ModuleList(
             [DWConv(kernel_size=conv_kernel_size, 
                     stride=conv_stride,
                     padding=conv_padding,
-                    dilation=conv_dilation,
-                    input_channel=mixture_dim,
-                    time_dim=time_dim) for time_dim in time_dims[1:]]
+                    dilation=1,
+                    input_channel=input_channel,
+                    time_dim=time_dim,
+                    use_act=False) for time_dim in time_dims[1:]]
         )
         self.use_ga = use_ga
 
@@ -202,7 +224,7 @@ class Encoder(nn.Module):
             )
     
     def forward(self, x: torch.Tensor):
-        residuals = [x]
+        residuals = [self.init_conv(x)]
         for conv_layer in self.convs:
             x = conv_layer(x)
             residuals.append(x)
@@ -211,7 +233,7 @@ class Encoder(nn.Module):
                 x += pool_layer(residuals[i])
             return residuals, x
         return residuals
-    
+
 
 class GlobalAttention(nn.Module):
     def __init__(self, 
@@ -240,7 +262,6 @@ class GlobalAttention(nn.Module):
             [nn.Upsample(size=time_dim * upsample_rate**(i+1)) for i in range(upsample_num_layers)]
         )
 
-    
     def forward(self, residuals: list[torch.Tensor], attn: torch.Tensor):
         new_residuals = [F.sigmoid(residuals[-1]) * attn]
         for residual, upsample_block in zip(residuals[:-1][::-1], self.upsample_blocks):
@@ -265,7 +286,8 @@ class Decoder(nn.Module):
                        kernel_size=kernel_size, 
                        padding=kernel_size // 2, 
                        time_dim=time_dim * upsample_rate**(i + 1),
-                       use_act=False)
+                       use_act=False,
+                       bias=False)
                 for i in range(upsample_num_layers)
             ]
         )
@@ -276,7 +298,8 @@ class Decoder(nn.Module):
                            kernel_size=kernel_size, 
                            padding=kernel_size // 2, 
                            time_dim=time_dim * upsample_rate**(i + 1),
-                           use_act=False)
+                           use_act=False,
+                           bias=False)
                     for i in range(upsample_num_layers)
                 ]
             )
@@ -298,6 +321,7 @@ class Decoder(nn.Module):
 class TDANet(nn.Module):
     def __init__(self,
                  num_frames,
+                 init_mixture_dim,
                  mixture_dim,
                  num_speakers,
                  stem_kernel_size,
@@ -315,10 +339,10 @@ class TDANet(nn.Module):
         self.use_ga = use_ga
         self.num_blocks = num_blocks
         self.num_speakers = num_speakers
-        self.mixture_dim = mixture_dim
 
+        self.latent_dim = stem_kernel_size // 2 + 1
         self.encoder_stem =  nn.Conv1d(in_channels=1,
-                      out_channels=mixture_dim,
+                      out_channels=self.latent_dim,
                       kernel_size=stem_kernel_size,
                       stride=stem_kernel_size//4,
                       padding=stem_padding,
@@ -326,10 +350,25 @@ class TDANet(nn.Module):
                       )
         torch.nn.init.xavier_uniform_(self.encoder_stem.weight)
 
-        self.ln = nn.LayerNorm(normalized_shape=mixture_dim)
-
         time_dim = (num_frames + 2 * stem_padding - stem_kernel_size) // (stem_kernel_size // 4) + 1
         last_time_dim = time_dim // (rate**(num_layers))
+
+        self.ln = GLN(self.latent_dim)
+
+        self.bottleneck = nn.Conv1d(
+            in_channels=self.latent_dim, 
+            out_channels=init_mixture_dim, 
+            kernel_size=1
+        )
+
+        self.proj_conv = nn.Sequential(
+            nn.Conv1d(in_channels=init_mixture_dim,
+                      out_channels=mixture_dim,
+                      kernel_size=1,
+                      groups=1,
+                      ),
+            GLN(mixture_dim)
+        )
 
         self.encoder = Encoder(mixture_dim, 
                                time_dim, 
@@ -354,28 +393,32 @@ class TDANet(nn.Module):
                                upsample_num_layers=num_layers,
                                use_attn=use_la)
 
+        self.inverse_proj = nn.Conv1d(mixture_dim, 
+                                      init_mixture_dim, 
+                                      kernel_size=1)
+
         self.mask_gen = nn.Sequential(
             nn.PReLU(),
-            nn.Conv1d(in_channels=mixture_dim, 
-                      out_channels=num_speakers*mixture_dim,
+            nn.Conv1d(in_channels=init_mixture_dim, 
+                      out_channels=num_speakers*self.latent_dim,
                       kernel_size=1,
                       stride=1),
             nn.ReLU()
         )
-        self.reconstruction_conv = nn.ConvTranspose1d(in_channels=mixture_dim * num_speakers, 
+        self.reconstruction_conv = nn.ConvTranspose1d(in_channels=self.latent_dim * num_speakers, 
                                                      out_channels=num_speakers, 
                                                      kernel_size=stem_kernel_size,
                                                      stride=stem_kernel_size // 4,
                                                      padding=stem_padding,
-                                                     groups=1)
+                                                     bias=False)
         torch.nn.init.xavier_uniform_(self.reconstruction_conv.weight)
 
         self.concat_block = nn.Sequential(
-            nn.Conv1d(in_channels=mixture_dim,
-                      out_channels=mixture_dim,
+            nn.Conv1d(in_channels=init_mixture_dim,
+                      out_channels=init_mixture_dim,
                       kernel_size=1,
                       stride=1,
-                      groups=mixture_dim),
+                      groups=init_mixture_dim),
             nn.PReLU()
         )
     
@@ -383,17 +426,25 @@ class TDANet(nn.Module):
         batch_size = x.size(0)
 
         r = self.encoder_stem(x)
-        r = self.ln(r.transpose(1, 2)).transpose(1, 2)
+        encoded_audio = r.clone()
+
+        r = self.ln(r)
+        r = self.bottleneck(r)
         x = torch.zeros_like(r)
         for i in range(self.num_blocks):
-            encoder_out = self.encoder(self.concat_block(x + r))
+            x = self.concat_block(x + r)
+            x_res = x.clone()
+
+            x = self.proj_conv(x)
+            encoder_out = self.encoder(x)
             if self.use_ga:
                 residuals = self.ga_block(*encoder_out)[::-1]
             else:
                 residuals = encoder_out
             x = self.decoder(residuals[::-1])
+            x = x_res + self.inverse_proj(x)
 
-        applied_masks = (self.mask_gen(x).view(batch_size, self.mixture_dim, self.num_speakers, -1) * r.unsqueeze(2)).view(batch_size, self.mixture_dim * self.num_speakers, -1)
+        applied_masks = (self.mask_gen(x).view(batch_size, self.latent_dim, self.num_speakers, -1) * encoded_audio.unsqueeze(2)).view(batch_size, self.latent_dim * self.num_speakers, -1)
         return {"logits": self.reconstruction_conv(applied_masks)}
     
 

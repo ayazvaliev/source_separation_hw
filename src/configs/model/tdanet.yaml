@@ -1,5 +1,6 @@
 _target_: src.model.TDANet
 num_frames: 32000
+init_mixture_dim: 128
 mixture_dim: 512
 num_speakers: 2
 stem_kernel_size: 72
