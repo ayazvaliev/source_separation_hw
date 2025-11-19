@@ -1,8 +1,8 @@
 from src.model.moduls import GLN
 import torch
 from torch import nn
-from torch.nn.functional import softmax, interpolate
-from sru import SRU
+from src.model.moduls import TransformerLayer
+from torch.nn.functional import interpolate
 
 
 class AP_block(nn.Module):
@@ -10,7 +10,7 @@ class AP_block(nn.Module):
     Simple MLP
     """
 
-    def __init__(self, n_feats):
+    def __init__(self):
         """
         Args:
             n_feats (int): number of input features.
@@ -19,34 +19,27 @@ class AP_block(nn.Module):
         """
         super().__init__()
         C_a = 512
+        comp_coef = 4
         
 
         #RTFS
         #Comp
-        self.compression_C = nn.Conv1d(in_channels=C_a, out_channels=C_a//comp_coef, kernel_size=1)
         self.compression_TF_1 = nn.Conv1d(in_channels=C_a, out_channels=C_a, kernel_size=4, stride=2, padding=2)
         self.compression_TF_2 = nn.Conv1d(in_channels=C_a, out_channels=C_a, kernel_size=4, stride=2, padding=2)
         self.adaptive_pool = nn.AdaptiveAvgPool2d((1, 1))
         
 
         #Attentn
-        self.n_feats = n_feats
-
-        self.pos_embeddings = nn.Embedding(n_feats, 50//4)
-
-        self.multi_head = nn.MultiheadAttention(
-        embed_dim=50//4,        
-        num_heads=8,        
-        dropout=0.1,        
-        batch_first=True      
-        )
+        self.Attentn = TransformerLayer(input_channel = C_a,
+        time_dim=50//4,
+        mhsa_nhead=8, 
+        mhsa_heads_dim=50//4, 
+        mhsa_dropout=0.1,
+        conv_kernel_size=5,
+        conv_stride=1,
+        conv_dilation=1,
+        conv_padding=2)
         
-        self.gln = GLN(n_feats)
-        self.conv_mh = nn.Conv1d(n_feats, n_feats*2, kernel_size=1)
-        self.gln_2 = GLN(n_feats)
-        self.conv_mh_2 = nn.Conv1d(n_feats*2, n_feats*2, kernel_size = 5 , groups=n_feats*2, padding=2)
-        self.gln_3 = GLN(n_feats)
-        self.conv_mh_3 = nn.Conv1d(n_feats*2, n_feats, kernel_size=1)
 
         
 
@@ -76,33 +69,20 @@ class AP_block(nn.Module):
         x_1 = self.adaptive_pool(A_1, target_sise)
         A_g = torch.sum(x_comp,x_1,x_2)
 
+
+        
+
         #Att
 
-        pos_emb = self.pos_embeddings(self.n_feats)
-        B = A_g.shape[0]
-        pos_emb = pos_emb.unsqueese(0).repeat(B, 1, 1)
-
-        res = A_g + pos_emb
-
-        mhsa_res = self.multi_head(res)
-        mhsa_res = self.multi_head(mhsa_res)
-
-        mhsa_fin = res+ mhsa_res
-        res = mhsa_fin.copy() 
-
-        msa_fin = self.gln(self.conv_mh(msa_fin))
-        msa_fin = self.gln_2(self.conv_mh_2(msa_fin))
-        msa_fin = self.gln_3(self.conv_mh_3(msa_fin))
-
-        att_fin = mhsa_fin + res
+        att_fin = self.Attentn(A_g)
 
         #Next phase
 
         V_g_hash = att_fin + A_g
         
         #Upscale
-        A_0_hatch = self.I(x, A_g_hatch)
-        A_1_hatch = self.I(A_1, A_g_hatch)
+        A_0_hatch = self.I(x, V_g_hatch)
+        A_1_hatch = self.I(A_1, V_g_hatch)
         
 
         A_0_hatch_hatch = self.I(A_0_hatch, A_1_hatch) + x
@@ -110,7 +90,8 @@ class AP_block(nn.Module):
         return self.conv_ups(A_0_hatch_hatch)
 
 
-
+    def forward(x):
+        return self.RTFS(x)
 
 
     
