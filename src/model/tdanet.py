@@ -125,6 +125,7 @@ class MHSA(nn.Module):
         self.nhead = nhead
         self.heads_dim = heads_dim
         self.dropout=dropout
+        self.gln = GLN(heads_dim * nhead)
     
     def forward(self, x: torch.Tensor):
         # x (B, N, T)
@@ -148,7 +149,7 @@ class MHSA(nn.Module):
         )
 
         attn = attn.transpose(1,2).contiguous() # (B, T, nhead, heads_dim)
-        return x + attn.view(B, T, N).transpose(1, 2)
+        return self.gln(x + attn.view(B, T, -1).transpose(1, 2)) # (B, T, nhead * heads_dim)
 
 
 class TransformerLayer(nn.Module):
@@ -169,7 +170,7 @@ class TransformerLayer(nn.Module):
                          heads_dim=mhsa_heads_dim, 
                          nhead=mhsa_nhead, 
                          dropout=mhsa_dropout
-                         )
+                        )
         self.ffn = FFN(
             input_channel=input_channel,
             time_dim=time_dim,
@@ -263,6 +264,7 @@ class GlobalAttention(nn.Module):
         )
 
     def forward(self, residuals: list[torch.Tensor], attn: torch.Tensor):
+        attn = self.transformer(attn)
         new_residuals = [F.sigmoid(residuals[-1]) * attn]
         for residual, upsample_block in zip(residuals[:-1][::-1], self.upsample_blocks):
             attn = upsample_block(attn)
