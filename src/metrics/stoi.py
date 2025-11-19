@@ -25,4 +25,4 @@ class STOI(BaseMetric):
                                    metrics_list=["stoi"])
             accum += metrices['stoi'] / batch_size        
 
-        return accum
+        return accum / len(audio_mix)

@@ -25,4 +25,4 @@ class PESQ(BaseMetric):
                                    metrics_list=["pesq"])
             accum += metrices['pesq'] / batch_size        
 
-        return accum
+        return accum / len(audio_mix)

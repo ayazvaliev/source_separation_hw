@@ -2,7 +2,7 @@ from src.metrics.base_metric import BaseMetric
 import torch
 from torchmetrics.functional.audio import (
      permutation_invariant_training,
-     scale_invariant_signal_distortion_ratio
+     scale_invariant_signal_noise_ratio
 )
 from src.metrics.metric_utils import gather_by_perm
 
@@ -18,14 +18,14 @@ class SISNRi(BaseMetric):
 
         _, best_permut = permutation_invariant_training(
              preds=logits, target=clean,
-             metric_func=scale_invariant_signal_distortion_ratio,
+             metric_func=scale_invariant_signal_noise_ratio,
              eval_func='max',
              zero_mean=True
         )
         logits = gather_by_perm(logits, best_permut)
 
-        si_sdr_est = scale_invariant_signal_distortion_ratio(logits, clean, zero_mean=True)
-        si_sdr_mix = scale_invariant_signal_distortion_ratio(audio_mix, clean, zero_mean=True)
+        si_sdr_est = scale_invariant_signal_noise_ratio(logits, clean)
+        si_sdr_mix = scale_invariant_signal_noise_ratio(audio_mix, clean)
         si_sdri = si_sdr_est - si_sdr_mix
 
         return si_sdri.mean().item()

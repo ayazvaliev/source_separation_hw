@@ -19,6 +19,7 @@ class RTFSNet(nn.Module):
         C_a=512,
         comp_coef=4,
         h=20,
+        proj_kernel_video=3,
         kernel_video=3,
     ):
         super().__init__()
@@ -33,20 +34,33 @@ class RTFSNet(nn.Module):
 
         # encoder
         self.audio_encoder = nn.Conv2d(in_channels=2, out_channels=C_a, kernel_size=3, padding=1)
-        self.visual_preprocessing_block = nn.SomeBlock
 
         # CAF
         self.h = h
         self.C_a = C_a
+
+        self.video_proj = nn.Sequential(
+            GLN(C_a),
+            nn.Conv1d(
+                in_channels=C_a * 2,
+                out_channels=C_a,
+                kernel_size=proj_kernel_video,
+                padding=proj_kernel_video // 2,
+                groups=1,
+                bias=False
+            ),
+            GLN(C_a)
+        )
+
         self.conv_for_video_1 = nn.Conv1d(
-            in_channels=512,
+            in_channels=C_a,
             out_channels=h * C_a,
             padding=kernel_video // 2,
             kernel_size=kernel_video,
             groups=C_a,
         )
         self.conv_for_video_2 = nn.Conv1d(
-            in_channels=512, out_channels=C_a, kernel_size=1, groups=C_a
+            in_channels=C_a, out_channels=C_a, kernel_size=1, groups=C_a
         )
         self.glob_layer_norm_1 = GLN(h * C_a)
         self.glob_layer_norm_2 = GLN(C_a)
@@ -142,27 +156,25 @@ class RTFSNet(nn.Module):
 
         self.dec_tr_conv = nn.ConvTranspose2d(C_a, 2, kernel_size=3, stride=1, padding=1)
 
-    def forward(self, audio_mix: torch.Tensor, mouth_embeddings: torch.Tensor, **batch):
-        """
-        Model forward method.
+    def forward(self, audio_mix: torch.Tensor, mouth1_emb: torch.Tensor, mouth2_emb: torch.Tensor, **batch):
+        # mouth embss [B, T, F]
 
-        Args:
-            data_object (Tensor): input vector.
-        Returns:
-            output (dict): output dict containing logits.
-        """
-        _, audio_time, audio_feats = audio_mix.shape
         # preprocessing block
-        audio = self.audio_encoder(audio_mix)
+        stft_spec = torch.stft(audio_mix,
+                               n_fft=self.n_fft,
+                               hop_length=self.hop_length,
+                               win_length=self.win_length,
+                               window=self.window)
+        audio = self.audio_encoder(stft_spec)
         a_0 = audio
-        video = mouth_embeddings
 
         # AP, VP
-
         audio = self.RTFS(audio)
 
-        # CAF block
+        # Конкатим и проектируем в нужную канальность [B, F=C_a, T]
+        video = self.video_proj(torch.concat([mouth1_emb, mouth2_emb], dim=-1).transpose(1, 2)) 
 
+        # CAF block
         audio_val = self.conv_for_audio_1(audio)
         audio_val = self.glob_layer_norm_3(audio_val)
 
@@ -170,7 +182,7 @@ class RTFSNet(nn.Module):
         audio_gate = self.glob_layer_norm_4(audio_gate)
         audio_gate = self.relu(audio_gate)
 
-        b, T, F = video.shape
+        b, F, T = video.shape
         video_1 = self.conv_for_video_1(video)
         video_1 = self.glob_layer_norm_1(video_1)
         video_1 = video_1.view(b, self.h, self.C_a, F)
@@ -185,10 +197,10 @@ class RTFSNet(nn.Module):
         video_2 = torch.einsum("bctf,bct->bctf", audio, video_2)
 
         caf_result = video_1 + video_2
+        for _ in range(self.N):
+            caf_result = self.RTFS(caf_result)
 
-        for i in range(self.N):
-            RTFS_res = self.RTFS(caf_result)
-
+        RTFS_res = caf_result
         m = self.relu(self.conv_sss(self.prelu(RTFS_res)))
 
         # SSS

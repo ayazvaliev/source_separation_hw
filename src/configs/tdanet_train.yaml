@@ -22,7 +22,7 @@ lr_scheduler:
   warmup_ratio: 0
 
 loss_function:
-  _target_: src.loss.SISDRLoss
+  _target_: src.loss.SISNRLoss
 
 trainer:
   log_step: 50

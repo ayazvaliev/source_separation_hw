@@ -14,13 +14,21 @@ def collate_fn(dataset_items: list[dict]):
             of the tensors.
     """
     audio_names = ["audio_s1", "audio_s2", "audio_mix"]
+    mouth_names = ["mouth1_emb", "mouth2_emb"]
 
     all_keys = set(dataset_items[0].keys())
 
-    result_batch = {
+    audio_batch = {
         name: torch.stack([elem[name] for elem in dataset_items])
         for name in audio_names if name in all_keys
     }
+
+    mouth_batch = {
+        name: torch.stack([elem[name] for elem in dataset_items])
+        for name in mouth_names if name in all_keys
+    }
+
+    result_batch = audio_batch | mouth_batch
 
     excluded_keys = set(result_batch.keys())
     for k in dataset_items[0].keys():

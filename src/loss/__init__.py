@@ -1,2 +1,2 @@
 from src.loss.example import ExampleLoss
-from src.loss.si_sdr_loss import SISDRLoss
+from src.loss.si_snr_loss import SISNRLoss

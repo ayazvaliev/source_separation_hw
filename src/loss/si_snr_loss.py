@@ -1,12 +1,12 @@
 import torch
 import torch.nn as nn
-from asteroid.losses import PITLossWrapper, pairwise_neg_snr
+from asteroid.losses import PITLossWrapper, pairwise_neg_sisdr
 
 
-class SISDRLoss(nn.Module):
+class SISNRLoss(nn.Module):
     def __init__(self):
         super().__init__()
-        self.loss= PITLossWrapper(pairwise_neg_snr, pit_from="pw_mtx")
+        self.loss= PITLossWrapper(pairwise_neg_sisdr, pit_from="pw_mtx")
     
     def forward(self, audio_s1, audio_s2, logits, **batch):
         target_audio = torch.concat([audio_s1, audio_s2], dim=1)

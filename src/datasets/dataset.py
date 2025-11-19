@@ -112,7 +112,9 @@ class MainDataset(BaseDataset):
             mouth2_npz = str(mouths_path / mouth2_name) + ".npz"
 
             mouths_emb_dir = self.data_root / "dla_dataset" / "mouth_embeddings"
-            os.makedirs(mouths_emb_dir, exist_ok = True)
+            if not os.path.exists(mouths_emb_dir):
+                os.makedirs(mouths_emb_dir)
+
             data_instance["mouth1_emb_path"] = self.get_mouth_embeddings(mouth_path=mouth1_npz,
              mouth_name=mouth1_name,
              save_dir=mouths_emb_dir)

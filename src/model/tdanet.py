@@ -111,7 +111,6 @@ class MHSA(nn.Module):
     
     def forward(self, x: torch.Tensor):
         # x (B, N, T)
-        print('before mhsa: ', x)
         B, N, T = x.size()
         x = x.transpose(1, 2)
         qkv = self.qkv_proj(x)
