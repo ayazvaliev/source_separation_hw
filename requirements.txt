@@ -20,7 +20,7 @@ asteroid
 pesq
 pystoi
 museval
-
+sru
 
 black
 isort

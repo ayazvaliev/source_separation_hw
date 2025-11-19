@@ -208,9 +208,7 @@ __marimo__/
 
 saved
 outputs
-dla_dataset
 wandb
-indexes/
 test_*
 
 #Большие файлы с датасетом и индексом
