@@ -1,4 +1,4 @@
-from src.model.moduls import GLN
+from src.model.moduls import GLN, Encoder, TransformerLayer
 import torch
 from torch import nn
 from torch.nn.functional import softmax, interpolate
@@ -157,20 +157,23 @@ class RTFSNet(nn.Module):
         self.dec_tr_conv = nn.ConvTranspose2d(C_a, 2, kernel_size=3, stride=1, padding=1)
 
     def forward(self, audio_mix: torch.Tensor, mouth1_emb: torch.Tensor, mouth2_emb: torch.Tensor, **batch):
-        # mouth embss [B, T, F]
+        # mouth embs [B, T, F]
 
-        # preprocessing block
+        # extracting complex spec
         stft_spec = torch.stft(audio_mix,
                                n_fft=self.n_fft,
                                hop_length=self.hop_length,
                                win_length=self.win_length,
-                               window=self.window)
-        audio = self.audio_encoder(stft_spec)
+                               window=self.window,
+                               return_complex=True)
+        stft_spec = torch.stack([torch.real(stft_spec), torch.imag(stft_spec)], dim=1) # [B, 2, F, T]
+
+        # AP
+        audio = self.audio_encoder(stft_spec).transpose(2, 3) # [B, C_a, T, F]
+        audio_time = audio.size(-2)
         a_0 = audio
 
-        # AP, VP
-        audio = self.RTFS(audio)
-
+        # VP
         # Конкатим и проектируем в нужную канальность [B, F=C_a, T]
         video = self.video_proj(torch.concat([mouth1_emb, mouth2_emb], dim=-1).transpose(1, 2)) 
 
@@ -185,7 +188,7 @@ class RTFSNet(nn.Module):
         b, F, T = video.shape
         video_1 = self.conv_for_video_1(video)
         video_1 = self.glob_layer_norm_1(video_1)
-        video_1 = video_1.view(b, self.h, self.C_a, F)
+        video_1 = video_1.view(b, self.h, self.C_a, T)
         video_1 = torch.mean(video_1, dim=1)
         video_1 = softmax(video_1, dim=-1)
         video_1 = interpolate(video_1, mode="nearest", size=audio_time)
