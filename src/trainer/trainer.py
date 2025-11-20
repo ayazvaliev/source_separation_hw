@@ -49,7 +49,7 @@ class Trainer(BaseTrainer):
                 self.grad_scaler.update()
                 metrics.update("grad_norm", self._get_grad_norm())
                 self.optimizer.zero_grad()
-                if self.lr_scheduler is not None:
+                if self.lr_scheduler is not None and self.scheduler_config is None:
                     self.lr_scheduler.step()
 
         # update metrics for each loss (in case of multiple losses)
