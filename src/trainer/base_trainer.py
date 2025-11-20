@@ -263,6 +263,7 @@ class BaseTrainer:
         self.is_train = True
         self.model.train()
         self.train_metrics.reset()
+        logs = {}
 
         if self.writer is not None:
             self.writer.set_step((epoch - 1) * self.epoch_len)
@@ -312,7 +313,7 @@ class BaseTrainer:
             if batch_idx + 1 >= self.epoch_len:
                 break
 
-        logs = last_train_metrics
+            logs = last_train_metrics
 
         # Run val/test
         if epoch % self.val_step == 0:
