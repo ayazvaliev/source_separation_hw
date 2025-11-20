@@ -23,7 +23,8 @@ class BaseDataset(Dataset):
 
     def __init__(
         self, 
-        index, 
+        index,
+        get_mouths,
         sr, 
         limit=None, 
         shuffle_index=False, 
@@ -51,6 +52,7 @@ class BaseDataset(Dataset):
         self._index = self._shuffle_and_limit_index(index, limit, shuffle_index)
 
         self.instance_transforms = instance_transforms or {}
+        self.get_mouths = get_mouths
 
     def __getitem__(self, ind):
         """
@@ -69,8 +71,6 @@ class BaseDataset(Dataset):
         """
 
         data_dict = copy.deepcopy(self._index[ind])
-        
-
         audio_names = ["audio_s1", "audio_s2", "audio_mix"]
         data_dict.update(
             {
@@ -79,13 +79,14 @@ class BaseDataset(Dataset):
             }
         )
 
-        mouth_embs = ["mouth1_emb", "mouth2_emb"]
-        mouth_emb_dict = {}
-        for name in mouth_embs:
-            file = np.load(data_dict[name + "_path"])
-            mouth_emb_dict[name] = torch.from_numpy(file["data"])
-        
-        data_dict.update(mouth_emb_dict)
+        if self.get_mouths:
+            mouth_embs = ["mouth1_emb", "mouth2_emb"]
+            mouth_emb_dict = {}
+            for name in mouth_embs:
+                file = np.load(data_dict[name + "_path"])
+                mouth_emb_dict[name] = torch.from_numpy(file["data"])
+
+            data_dict.update(mouth_emb_dict)
 
         data_dict = self.preprocess_data(data_dict)
         

@@ -47,7 +47,7 @@ class MainDataset(BaseDataset):
             os.makedirs(str(index_path.parent), exist_ok=True)
             index = self._create_index(name, index_path, dataset_url)
 
-        super().__init__(index, *args, **kwargs)
+        super().__init__(index, get_mouths, *args, **kwargs)
 
     def _create_index(self, 
                       name: str, 
