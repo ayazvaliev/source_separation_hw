@@ -18,6 +18,7 @@ class MainDataset(BaseDataset):
         name="train", 
         index_dir=None,
         dataset_url=None,
+        get_mouths=False,
         *args, 
         **kwargs
     ):
@@ -28,6 +29,7 @@ class MainDataset(BaseDataset):
             index_dir (str): path to index dir (convenient for kaggle as their dataset section is ronly)
             dataset_url (str): URL to dataset.
         """
+        self.get_mouths = get_mouths
         self.data_root = Path(data_root)
         if index_dir is None:
             index_dir = data_root
@@ -86,9 +88,6 @@ class MainDataset(BaseDataset):
         
      
         for item in tqdm((audio_path / "mix").iterdir()):
-            
-            
-            
             # create dataset
             item_name = item.name
 
@@ -103,24 +102,25 @@ class MainDataset(BaseDataset):
                 if os.path.exists(path):
                     data_instance[name + "_path"] = path
 
-            info = torchaudio.info(audio_mix_path)
-            data_instance["length"] = info.num_frames / info.sample_rate
-            data_instance["mouths_path"] = str(mouths_path / item_name)
-            
-            mouth1_name, mouth2_name = item_name[:-4].split("_")
-            mouth1_npz = str(mouths_path / mouth1_name) + ".npz"
-            mouth2_npz = str(mouths_path / mouth2_name) + ".npz"
+            # info = torchaudio.info(audio_mix_path)
+            # data_instance["length"] = info.num_frames / info.sample_rate
+            if self.get_mouths:
+                data_instance["mouths_path"] = str(mouths_path / item_name)
+                
+                mouth1_name, mouth2_name = item_name[:-4].split("_")
+                mouth1_npz = str(mouths_path / mouth1_name) + ".npz"
+                mouth2_npz = str(mouths_path / mouth2_name) + ".npz"
 
-            mouths_emb_dir = self.data_root / "dla_dataset" / "mouth_embeddings"
-            if not os.path.exists(mouths_emb_dir):
-                os.makedirs(mouths_emb_dir)
+                mouths_emb_dir = self.data_root / "dla_dataset" / "mouth_embeddings"
+                if not os.path.exists(mouths_emb_dir):
+                    os.makedirs(mouths_emb_dir)
 
-            data_instance["mouth1_emb_path"] = self.get_mouth_embeddings(mouth_path=mouth1_npz,
-             mouth_name=mouth1_name,
-             save_dir=mouths_emb_dir)
-            data_instance["mouth2_emb_path"] = self.get_mouth_embeddings(mouth_path=mouth2_npz,
-             mouth_name=mouth2_name,
-             save_dir=mouths_emb_dir)
+                data_instance["mouth1_emb_path"] = self.get_mouth_embeddings(mouth_path=mouth1_npz,
+                mouth_name=mouth1_name,
+                save_dir=mouths_emb_dir)
+                data_instance["mouth2_emb_path"] = self.get_mouth_embeddings(mouth_path=mouth2_npz,
+                mouth_name=mouth2_name,
+                save_dir=mouths_emb_dir)
 
             index.append(data_instance)
 
