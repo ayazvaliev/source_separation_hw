@@ -2,7 +2,7 @@ import torch
 import torch.nn as nn
 import torch.nn.functional as F
 from src.model.moduls import GLN
-from src.model.moduls import DWConv, GlobalAttention, Encoder
+from src.model.moduls import DWConv, Encoder, TransformerLayer
 
 
 class LADecoder(nn.Module):
@@ -12,18 +12,19 @@ class LADecoder(nn.Module):
                  kernel_size, 
                  upsample_rate, 
                  upsample_num_layers,
-                 use_attn=True):
+                 use_attn=True,
+                 loc_same_size_as_glob=False,
+                 collect_residuals=False):
         super().__init__()
+        self.collect_residuals = collect_residuals
         self.use_attn = use_attn
         self.convs = nn.ModuleList(
             [
                 DWConv(input_channel=mixture_dim, 
                        kernel_size=kernel_size, 
-                       padding=kernel_size // 2, 
-                       time_dim=time_dim * upsample_rate**(i + 1),
-                       use_act=False,
-                       bias=False)
-                for i in range(upsample_num_layers)
+                       padding=kernel_size // 2,
+                       use_act=False)
+                for _ in range(upsample_num_layers + int(loc_same_size_as_glob))
             ]
         )
         if self.use_attn:
@@ -31,26 +32,75 @@ class LADecoder(nn.Module):
                 [
                     DWConv(input_channel=mixture_dim, 
                            kernel_size=kernel_size, 
-                           padding=kernel_size // 2, 
-                           time_dim=time_dim * upsample_rate**(i + 1),
-                           use_act=False,
-                           bias=False)
-                    for i in range(upsample_num_layers)
+                           padding=kernel_size // 2,
+                           use_act=False)
+                    for _ in range(upsample_num_layers + int(loc_same_size_as_glob))
                 ]
             )
         self.upsample_blocks = nn.ModuleList(
-            [nn.Upsample(size=time_dim * upsample_rate**(i+1)) for i in range(upsample_num_layers)]
+            [nn.Upsample(size=time_dim * upsample_rate**(i+int(loc_same_size_as_glob))) for i in range(upsample_num_layers + int(loc_same_size_as_glob))]
         )
     
     def forward(self, residuals: list[torch.Tensor]):
         x = residuals[0]
+        new_residuals = []
         for i in range(len(residuals) - 1):
             x = self.upsample_blocks[i](x)
             if self.use_attn:
                 x = F.sigmoid(self.attn_convs[i](x)) * residuals[i+1] + self.convs[i](x)
             else:
                 x = residuals[i+1] + self.convs[i](x)
+            if self.collect_residuals:
+                new_residuals.append(x)
+
+        if self.collect_residuals:
+            return new_residuals
         return x
+
+
+class GlobalAttention(nn.Module):
+    def __init__(self, 
+                 mixture_dim,
+                 time_dim,
+                 nhead,
+                 dropout,
+                 kernel_size,
+                 upsample_num_layers,
+                 upsample_rate):
+        super().__init__()
+        self.transformer = TransformerLayer(
+            mixture_dim,
+            time_dim,
+            nhead,
+            dropout,
+            kernel_size,
+            conv_stride=1,
+            conv_dilation=1,
+            conv_padding=kernel_size//2
+        )
+        self.la = LADecoder(
+            mixture_dim=mixture_dim,
+            time_dim=time_dim,
+            kernel_size=kernel_size,
+            upsample_rate=upsample_rate,
+            upsample_num_layers=upsample_num_layers,
+            use_attn=True,
+            loc_same_size_as_glob=True,
+            collect_residuals=True
+        )
+
+
+    def forward(self, residuals: list[torch.Tensor], attn: torch.Tensor):
+        attn = self.transformer(attn)
+        return self.la([attn] + residuals[::-1])
+    
+        '''
+        new_residuals = [F.sigmoid(residuals[-1]) * attn]
+        for residual, upsample_block in zip(residuals[:-1][::-1], self.upsample_blocks):
+            attn = upsample_block(attn)
+            new_residuals.append(F.sigmoid(attn) * residual)
+        return new_residuals
+        '''
 
 
 class TDANet(nn.Module):
@@ -102,11 +152,11 @@ class TDANet(nn.Module):
                       kernel_size=1,
                       groups=1,
                       ),
-            GLN(mixture_dim)
+            GLN(mixture_dim),
+            nn.PReLU()
         )
 
         self.encoder = Encoder(mixture_dim, 
-                               time_dim, 
                                downsample_num_layers=num_layers, 
                                downsample_rate=rate,
                                use_ga=self.use_ga)
@@ -115,15 +165,14 @@ class TDANet(nn.Module):
             self.ga_block = GlobalAttention(mixture_dim=mixture_dim,
                                             time_dim=last_time_dim,
                                             nhead=kwargs['ga_nhead'],
-                                            heads_dim=kwargs['ga_heads_dim'],
                                             dropout=kwargs['ga_dropout'],
                                             kernel_size=kwargs['ga_kernel_size'],
                                             upsample_num_layers=num_layers,
                                             upsample_rate=rate)
         
         self.decoder = LADecoder(mixture_dim=mixture_dim,
-                               time_dim=last_time_dim,
                                kernel_size=decoder_kernel_size,
+                               time_dim=time_dim,
                                upsample_rate=rate,
                                upsample_num_layers=num_layers,
                                use_attn=use_la)
@@ -156,6 +205,12 @@ class TDANet(nn.Module):
                       groups=init_mixture_dim),
             nn.PReLU()
         )
+        self.concat_block = DWConv(
+            input_channel=init_mixture_dim,
+            kernel_size=1,
+            padding=0,
+            use_norm=False
+        )
     
     def forward(self, x: torch.Tensor):
         batch_size = x.size(0)
@@ -173,7 +228,7 @@ class TDANet(nn.Module):
             x = self.proj_conv(x)
             encoder_out = self.encoder(x)
             if self.use_ga:
-                residuals = self.ga_block(*encoder_out)[::-1]
+                residuals = self.ga_block(*encoder_out)
             else:
                 residuals = encoder_out
             x = self.decoder(residuals[::-1])
