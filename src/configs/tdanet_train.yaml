@@ -28,7 +28,7 @@ scheduler_config:
   monitor_metric: SI-SDR
 
 loss_function:
-  _target_: src.loss.SISNRLoss
+  _target_: src.loss.SNRLoss
 
 trainer:
   log_step: 500

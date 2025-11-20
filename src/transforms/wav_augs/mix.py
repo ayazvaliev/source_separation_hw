@@ -31,7 +31,7 @@ class Mix(nn.Module):
     def forward(self, audio_s1: torch.Tensor, audio_s2: torch.Tensor, **batch):
         batch_size = audio_s1.size(0)
         if self.shuffle_batch:
-            audio_s2 = audio_s2[torch.randperm(batch_size)]
+            audio_s2 = audio_s2[torch.randperm(batch_size, device=audio_s2.device)]
         snr = self.snr_distribution.sample(
             sample_shape=(batch_size,)
         ).to(audio_s1.device)
