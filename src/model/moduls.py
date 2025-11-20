@@ -1,6 +1,7 @@
 from torch import nn
 import torch.nn.functional as F
 import torch
+import math
 
 EPS = 1e-8
 
@@ -12,7 +13,7 @@ class PositionalEncoding(nn.Module):
         maxlen
     ):
         super().__init__()
-        den = torch.exp(- torch.arange(0, emb_size, 2)* torch.log(10000) / emb_size).reshape(-1, 1)
+        den = torch.exp(- torch.arange(0, emb_size, 2) * math.log(10000) / emb_size).reshape(-1, 1)
         pos = torch.arange(0, maxlen).reshape(1, maxlen)
         pos_embedding = torch.zeros((emb_size, maxlen))
         pos_embedding[0::2, :] = torch.sin(pos * den)
@@ -47,9 +48,13 @@ class DWConv(nn.Module):
                  stride=1,
                  dilation=1,
                  use_act=True,
+                 use_norm=True,
                  output_channel=None,
-                 bias=True):
+                 bias=None):
         super().__init__()
+        if bias is None:
+            bias = not use_norm
+
         if output_channel is None:
             output_channel = input_channel
 
@@ -61,7 +66,11 @@ class DWConv(nn.Module):
                                  dilation=dilation,
                                  groups=input_channel,
                                  bias=bias)
-        self.gl_norm = GLN(input_channel)
+        if use_norm:
+            self.gl_norm = GLN(input_channel)
+        else:
+            self.gl_norm = nn.Identity()
+
         if use_act:
             self.act = nn.PReLU()
         else:
@@ -78,7 +87,6 @@ class FFN(nn.Module):
                  dilation,
                  padding,
                  input_channel,
-                 time_dim,
                  dropout):
         super().__init__()
 
@@ -93,14 +101,13 @@ class FFN(nn.Module):
         )
         self.bottleneck = nn.Sequential(
             DWConv(
-                kernel_size,
-                stride,
-                dilation,
-                padding,
-                2*input_channel,
-                time_dim
+                kernel_size=kernel_size,
+                padding=padding,
+                input_channel=2*input_channel,
+                stride=stride,
+                dilation=dilation,
+                use_act=True
             ),
-            nn.ReLU(),
             nn.Dropout(dropout)
         )
         self.channel_narrow = nn.Sequential(
@@ -123,17 +130,19 @@ class FFN(nn.Module):
 class MHSA(nn.Module):
     def __init__(self, 
                  embed_dim,
-                 heads_dim,
                  nhead,
                  dropout=0.0):
         super().__init__()
+        assert embed_dim % nhead == 0
+        heads_dim = embed_dim // nhead
         self.qkv_proj = nn.Linear(in_features=embed_dim,
                                     out_features=3*heads_dim*nhead)
         self.nhead = nhead
         self.heads_dim = heads_dim
         self.dropout=dropout
         self.gln = GLN(heads_dim * nhead)
-    
+        self.cross_head_linear = nn.Linear(embed_dim, embed_dim)
+
     def forward(self, x: torch.Tensor):
         # x (B, N, T)
         B, N, T = x.size()
@@ -155,7 +164,7 @@ class MHSA(nn.Module):
         )
 
         attn = attn.transpose(1,2).contiguous() # (B, T, nhead, heads_dim)
-        return self.gln(x + attn.view(B, T, -1).transpose(1, 2)) # (B, nhead * heads_dim, T)
+        return self.gln(x + self.cross_head_linear(attn.view(B, T, -1)).transpose(1, 2)) # (B, nhead * heads_dim, T)
 
 
 class TransformerLayer(nn.Module):
@@ -163,7 +172,6 @@ class TransformerLayer(nn.Module):
                  input_channel,
                  time_dim,
                  mhsa_nhead,
-                 mhsa_heads_dim,
                  mhsa_dropout,
                  conv_kernel_size,
                  conv_stride,
@@ -173,17 +181,16 @@ class TransformerLayer(nn.Module):
         super().__init__()
         self.pos_encoder = PositionalEncoding(input_channel, time_dim)
         self.mhsa = MHSA(embed_dim=input_channel, 
-                         heads_dim=mhsa_heads_dim, 
                          nhead=mhsa_nhead, 
                          dropout=mhsa_dropout
                         )
         self.ffn = FFN(
             input_channel=input_channel,
-            time_dim=time_dim,
             kernel_size=conv_kernel_size,
             stride=conv_stride,
             dilation=conv_dilation,
-            padding=conv_padding
+            padding=conv_padding,
+            dropout=mhsa_dropout
         )
     
     def forward(self, x: torch.Tensor):
@@ -191,55 +198,14 @@ class TransformerLayer(nn.Module):
         return x + self.ffn(x)
 
 
-class GlobalAttention(nn.Module):
-    def __init__(self, 
-                 mixture_dim,
-                 time_dim,
-                 nhead,
-                 heads_dim,
-                 dropout,
-                 kernel_size,
-                 upsample_num_layers,
-                 upsample_rate):
-        super().__init__()
-        self.transformer = TransformerLayer(
-            mixture_dim,
-            time_dim,
-            nhead,
-            heads_dim,
-            dropout,
-            kernel_size,
-            conv_stride=1,
-            conv_dilation=1,
-            conv_padding=kernel_size//2
-        )
-
-        self.upsample_blocks = nn.ModuleList(
-            [nn.Upsample(size=time_dim * upsample_rate**(i+1)) for i in range(upsample_num_layers)]
-        )
-
-    def forward(self, residuals: list[torch.Tensor], attn: torch.Tensor):
-        attn = self.transformer(attn)
-        new_residuals = [F.sigmoid(residuals[-1]) * attn]
-        for residual, upsample_block in zip(residuals[:-1][::-1], self.upsample_blocks):
-            attn = upsample_block(attn)
-            new_residuals.append(F.sigmoid(attn) * residual)
-        return new_residuals
-
-
 class Encoder(nn.Module):
     def __init__(self,
                  input_channel,
-                 time_dim,
                  downsample_num_layers,
                  downsample_rate,
                  use_ga=True
                  ):
         super().__init__()
-        time_dims = [time_dim]
-        for _ in range(downsample_num_layers):
-            time_dims.append(time_dims[-1] // downsample_rate)
-
         conv_stride = downsample_rate
         conv_kernel_size = 2*downsample_rate + 1
         conv_padding = conv_kernel_size // 2
@@ -247,8 +213,8 @@ class Encoder(nn.Module):
         self.init_conv = DWConv(input_channel=input_channel,
                                  kernel_size=conv_kernel_size, 
                                  stride=1, 
-                                 time_dim=time_dim,
-                                 padding=conv_kernel_size//2)
+                                 padding=conv_kernel_size//2,
+                                 use_act=False)
 
         self.convs = nn.ModuleList(
             [DWConv(kernel_size=conv_kernel_size, 
@@ -256,8 +222,7 @@ class Encoder(nn.Module):
                     padding=conv_padding,
                     dilation=1,
                     input_channel=input_channel,
-                    time_dim=time_dim,
-                    use_act=False) for time_dim in time_dims[1:]]
+                    use_act=False) for _ in range(downsample_num_layers)]
         )
         self.use_ga = use_ga
 

@@ -6,17 +6,8 @@ from torch.nn.functional import interpolate
 
 
 class AP_block(nn.Module):
-    """
-    Simple MLP
-    """
 
     def __init__(self):
-        """
-        Args:
-            n_feats (int): number of input features.
-            n_class (int): number of classes.
-            fc_hidden (int): number of hidden features.
-        """
         super().__init__()
         C_a = 512
         comp_coef = 4
@@ -62,12 +53,12 @@ class AP_block(nn.Module):
     
     def RTFS(self,x):
         #Downscaling
-        A_1 = self.compression_TF_1(A_0)
+        A_1 = self.compression_TF_1(x)
         A_2 = self.compression_TF_2(A_1)
-        target_sise = x_2.shape[:-2]
-        x_comp = self.adaptive_pool(A_0, target_sise)
+        target_sise = A_2.shape[:-2]
+        x_comp = self.adaptive_pool(x, target_sise)
         x_1 = self.adaptive_pool(A_1, target_sise)
-        A_g = torch.sum(x_comp,x_1,x_2)
+        A_g = torch.sum(x_comp,x_1, A_2)
 
 
         
@@ -81,8 +72,8 @@ class AP_block(nn.Module):
         V_g_hash = att_fin + A_g
         
         #Upscale
-        A_0_hatch = self.I(x, V_g_hatch)
-        A_1_hatch = self.I(A_1, V_g_hatch)
+        A_0_hatch = self.I(x, V_g_hash)
+        A_1_hatch = self.I(A_1, V_g_hash)
         
 
         A_0_hatch_hatch = self.I(A_0_hatch, A_1_hatch) + x
@@ -90,12 +81,12 @@ class AP_block(nn.Module):
         return self.conv_ups(A_0_hatch_hatch)
 
 
-    def forward(x):
+    def forward(self, x):
         return self.RTFS(x)
 
 
     
-    def I(m, n):
+    def I(self, m, n):
         interpol_shapes = m.shape[-2:]
 
         result = (interpolate(self.sigmoid_m(self.W1(n)), interpol_shapes) * self.W2(m) + 

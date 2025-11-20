@@ -13,4 +13,4 @@ val:
   name: val
   sr: 16000
   instance_transforms: ${transforms.instance_transforms.inference}
-  limit: 500
+  limit: 1000
