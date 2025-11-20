@@ -38,7 +38,7 @@ class LADecoder(nn.Module):
                 ]
             )
         self.upsample_blocks = nn.ModuleList(
-            [nn.Upsample(size=time_dim * upsample_rate**(i+int(loc_same_size_as_glob))) for i in range(upsample_num_layers + int(loc_same_size_as_glob))]
+            [nn.Upsample(size=time_dim * upsample_rate**(i + (1 - int(loc_same_size_as_glob)))) for i in range(upsample_num_layers + int(loc_same_size_as_glob))]
         )
     
     def forward(self, residuals: list[torch.Tensor]):
@@ -172,7 +172,7 @@ class TDANet(nn.Module):
         
         self.decoder = LADecoder(mixture_dim=mixture_dim,
                                kernel_size=decoder_kernel_size,
-                               time_dim=time_dim,
+                               time_dim=last_time_dim,
                                upsample_rate=rate,
                                upsample_num_layers=num_layers,
                                use_attn=use_la)

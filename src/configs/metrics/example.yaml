@@ -16,7 +16,6 @@ inference: # metrics that are calculated during inference (eval)
     name: STOI
     sample_rate: 16000
 
-  - _target_: asteroid.losses.PITLossWrapper
+  - _target_: src.metrics.SISDR
     name: SI-SDR
-    loss_func: src.metrics.SISDR
-    pit_from: pw_mtx
+  
