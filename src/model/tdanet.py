@@ -228,7 +228,7 @@ class TDANet(nn.Module):
             x = self.proj_conv(x)
             encoder_out = self.encoder(x)
             if self.use_ga:
-                residuals = self.ga_block(*encoder_out)
+                residuals = self.ga_block(*encoder_out)[::-1]
             else:
                 residuals = encoder_out
             x = self.decoder(residuals[::-1])
