@@ -20,7 +20,6 @@ class SISNRi(BaseMetric):
              preds=logits, target=target_audio,
              metric_func=scale_invariant_signal_noise_ratio,
              eval_func='max',
-             zero_mean=True
         )
         logits = gather_by_perm(logits, best_permut)
 
