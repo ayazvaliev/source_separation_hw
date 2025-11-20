@@ -454,6 +454,7 @@ class BaseTrainer:
         transform_type = "train" if self.is_train else "inference"
         transforms = self.batch_transforms.get(transform_type)
         if transforms is None:
+            batch["audio_concat"] = torch.concat([batch["audio_s1"], batch["audio_s2"]], dim=1)
             return batch
         
         used_transforms = set()
