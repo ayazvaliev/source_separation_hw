@@ -5,7 +5,7 @@ train:
   name: train
   sr: 16000
   instance_transforms: ${transforms.instance_transforms.train}
-  limit: 20
+  limit: 10
 
 val:
   _target_: src.datasets.MainDataset
@@ -14,4 +14,4 @@ val:
   name: val
   sr: 16000
   instance_transforms: ${transforms.instance_transforms.inference}
-  limit: 20
+  limit: 10

@@ -172,6 +172,7 @@ class BaseTrainer:
 
         if self.cfg_trainer.get("from_pretrained", None) is None:
             self._initialize_optimizer(optimizer_sd, lr_scheduler_sd)
+            self.scheduler_config = self.config.get("scheduler_config", None)
 
     def _initialize_optimizer(self, optimizer_sd, lr_scheduler_sd):
         grouped_trainable_params = get_optimizer_grouped_parameters(
@@ -317,6 +318,8 @@ class BaseTrainer:
         if epoch % self.val_step == 0:
             for part, dataloader in self.evaluation_dataloaders.items():
                 val_logs = self._evaluation_epoch(epoch, part, dataloader)
+                if self.scheduler_config is not None and self.scheduler_config.monitor_part == part:
+                    self.lr_scheduler.step(val_logs[self.scheduler_config.monitor_metric])
                 logs.update(**{f"{part}_{name}": value for name, value in val_logs.items()})
 
         return logs
@@ -465,6 +468,8 @@ class BaseTrainer:
             if "audio_mix" in transforms:
                 batch["audio_mix"] = transforms["audio_mix"](batch["audio_mix"])
                 used_transforms.add("audio_mix")
+
+        batch["audio_concat"] = torch.concat([batch["audio_s1"], batch["audio_s2"]], dim=1)
 
         if "get_spectrogram" in transforms:
             batch["spectrogram_mix"] = transforms["get_spectrogram"](batch["audio_mix"])

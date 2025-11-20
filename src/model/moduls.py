@@ -97,7 +97,7 @@ class FFN(nn.Module):
                 kernel_size=1,
                 bias=False
             ),
-            GLN(input_channel)
+            GLN(2*input_channel)
         )
         self.bottleneck = nn.Sequential(
             DWConv(
@@ -146,8 +146,7 @@ class MHSA(nn.Module):
     def forward(self, x: torch.Tensor):
         # x (B, N, T)
         B, N, T = x.size()
-        x = x.transpose(1, 2)
-        qkv = self.qkv_proj(x)
+        qkv = self.qkv_proj(x.transpose(1, 2))
         qkv = qkv.view(B, T, 3, self.nhead, self.heads_dim)
         q, k, v = torch.unbind(qkv, dim=2)
 

@@ -8,10 +8,10 @@ class STOI(BaseMetric):
             super().__init__(name)
             self.sample_rate = sample_rate
 
-    def __call__(self, audio_mix, audio_s1, audio_s2, logits, **batch):
+    def __call__(self, audio_mix, audio_concat, logits, **batch):
         batch_size = audio_mix.size(0)
         audio_mix = audio_mix.cpu().numpy()
-        target_audio = torch.cat([audio_s1, audio_s2], dim=1).cpu().numpy()
+        target_audio = audio_concat.cpu().numpy()
         logits = logits.cpu().numpy()
         accum = 0
 
