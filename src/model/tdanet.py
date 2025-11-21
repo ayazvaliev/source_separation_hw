@@ -69,6 +69,7 @@ class GlobalAttention(nn.Module):
                  nhead=None,
                  dropout=None):
         super().__init__()
+        self.use_transformer = use_transformer
         if use_transformer:
             self.transformer = TransformerLayer(
                 mixture_dim,
@@ -93,7 +94,7 @@ class GlobalAttention(nn.Module):
 
 
     def forward(self, residuals: list[torch.Tensor], attn: torch.Tensor):
-        attn = self.transformer(attn)
+        attn = self.transformer(attn) if self.use_transformer else attn
         return self.la([attn] + residuals[::-1])
     
         '''
