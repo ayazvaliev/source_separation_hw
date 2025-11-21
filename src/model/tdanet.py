@@ -164,8 +164,8 @@ class TDANet(nn.Module):
 
         self.ga_block = GlobalAttention(mixture_dim=mixture_dim,
                                         time_dim=last_time_dim,
-                                        nhead=kwargs['mhsa_nhead'],
-                                        dropout=kwargs['mhsa_dropout'],
+                                        nhead=kwargs['mhsa_nhead'] if use_ga else None,
+                                        dropout=kwargs['mhsa_dropout'] if use_ga else None,
                                         kernel_size=ga_kernel_size,
                                         upsample_num_layers=num_layers,
                                         upsample_rate=rate,
