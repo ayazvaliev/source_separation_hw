@@ -674,7 +674,7 @@ class BaseTrainer:
                 "of the checkpoint. This may yield an exception when state_dict is loaded."
             )
         else:
-            if getattr(self.model, "_orig_mod", None) is not None:
+            if getattr(self.model_, "_orig_mod", None) is not None:
                 self.model_._orig_mod.load_state_dict(checkpoint["state_dict"])
             else:
                 self.model_.load_state_dict(checkpoint["state_dict"])
