@@ -62,12 +62,12 @@ class GlobalAttention(nn.Module):
     def __init__(self, 
                  mixture_dim,
                  time_dim,
-                 nhead,
-                 dropout,
                  kernel_size,
                  upsample_num_layers,
                  upsample_rate,
-                 use_transformer=True):
+                 use_transformer=True,
+                 nhead=None,
+                 dropout=None):
         super().__init__()
         if use_transformer:
             self.transformer = TransformerLayer(
