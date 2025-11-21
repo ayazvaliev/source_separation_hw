@@ -6,9 +6,16 @@ import os
 import yadisk
 import zipfile
 import subprocess
-
+import sys
 from src.datasets.base_dataset import BaseDataset
 from src.utils.io_utils import ROOT_PATH, read_json, write_json
+
+#original_dir = Path.cwd()
+#os.chdir('Lipreading_using_Temporal_Convolutional_Networks')
+sys.path.append('Lipreading_using_Temporal_Convolutional_Networks')
+#print(f"Changed to: {Path.cwd()}")
+from data_embedding_utils import MouthEmbeddingExtractor
+#os.chdir(original_dir)
 
 
 class MainDataset(BaseDataset):
@@ -18,7 +25,7 @@ class MainDataset(BaseDataset):
         name="train", 
         index_dir=None,
         dataset_url=None,
-        get_mouths=False,
+        get_mouths=True,
         *args, 
         **kwargs
     ):
@@ -37,6 +44,12 @@ class MainDataset(BaseDataset):
             index_dir = Path(index_dir)
         index_path = index_dir if index_dir is not None else self.data_root
         index_path = index_path / name / "index.json"
+
+        if self.get_mouths:
+            self.extractor = MouthEmbeddingExtractor(
+                config_path="Lipreading_using_Temporal_Convolutional_Networks/configs/lrw_resnet18_dctcn_boundary.json",
+                model_path="Lipreading_using_Temporal_Convolutional_Networks/models/lrw_resnet18_dctcn_video_boundary.pth"
+            )
 
         # each nested dataset class must have an index field that
         # contains list of dicts. Each dict contains information about
@@ -131,19 +144,11 @@ class MainDataset(BaseDataset):
 
 
     def get_mouth_embeddings(self, mouth_path, mouth_name, save_dir):
-        
-        save_path = str(save_dir) + "\\" + str(mouth_name) + ".npz"
-        
+
+        save_path = os.path.join(str(save_dir), str(mouth_name) + ".npz")
+
         if os.path.exists(save_path):
             return save_path
-        command = [
-        "python", "Lipreading_using_Temporal_Convolutional_Networks/main.py",
-        "--modality", "video",
-        "--extract-feats",
-        "--config-path", "Lipreading_using_Temporal_Convolutional_Networks/configs/lrw_resnet18_dctcn_boundary.json",  
-        "--model-path", "Lipreading_using_Temporal_Convolutional_Networks/models/lrw_resnet18_dctcn_video_boundary.pth",
-        "--mouth-patch-path", mouth_path,
-        "--mouth-embedding-out-path", save_path
-        ]
-        result = subprocess.run(command, capture_output=True)
+        self.extractor.extract_and_save(mouth_path, save_path)
         return save_path
+
