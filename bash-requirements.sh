@@ -1,4 +1,5 @@
 sudo apt install libgl1-mesa-glx
+sudo apt install ffmpeg
 gdown "1TGFG0dW5M3rBErgU8i0N7M1ys9YMIvgm" -O Lipreading_using_Temporal_Convolutional_Networks/models/lrw_resnet18_dctcn_video_boundary.pth
 
 sudo apt update && sudo apt upgrade -y
