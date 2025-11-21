@@ -202,7 +202,6 @@ class Encoder(nn.Module):
                  input_channel,
                  downsample_num_layers,
                  downsample_rate,
-                 use_ga=True
                  ):
         super().__init__()
         conv_stride = downsample_rate
@@ -223,20 +222,16 @@ class Encoder(nn.Module):
                     input_channel=input_channel,
                     use_act=False) for _ in range(downsample_num_layers)]
         )
-        self.use_ga = use_ga
 
-        if self.use_ga:
-            self.avg_pools = nn.ModuleList(
-                [nn.AvgPool1d(kernel_size=downsample_rate**i) for i in range(downsample_num_layers, 0, -1)]
-            )
+        self.avg_pools = nn.ModuleList(
+            [nn.AvgPool1d(kernel_size=downsample_rate**i) for i in range(downsample_num_layers, 0, -1)]
+        )
     
     def forward(self, x: torch.Tensor):
         residuals = [self.init_conv(x)]
         for conv_layer in self.convs:
             x = conv_layer(x)
             residuals.append(x)
-        if self.use_ga:
-            for i, pool_layer in enumerate(self.avg_pools):
-                x += pool_layer(residuals[i])
-            return residuals, x
-        return residuals
+        for i, pool_layer in enumerate(self.avg_pools):
+            x += pool_layer(residuals[i])
+        return residuals, x

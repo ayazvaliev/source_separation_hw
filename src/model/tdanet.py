@@ -66,18 +66,20 @@ class GlobalAttention(nn.Module):
                  dropout,
                  kernel_size,
                  upsample_num_layers,
-                 upsample_rate):
+                 upsample_rate,
+                 use_transformer=True):
         super().__init__()
-        self.transformer = TransformerLayer(
-            mixture_dim,
-            time_dim,
-            nhead,
-            dropout,
-            kernel_size,
-            conv_stride=1,
-            conv_dilation=1,
-            conv_padding=kernel_size//2
-        )
+        if use_transformer:
+            self.transformer = TransformerLayer(
+                mixture_dim,
+                time_dim,
+                nhead,
+                dropout,
+                kernel_size,
+                conv_stride=1,
+                conv_dilation=1,
+                conv_padding=kernel_size//2
+            )
         self.la = LADecoder(
             mixture_dim=mixture_dim,
             time_dim=time_dim,
@@ -121,7 +123,6 @@ class TDANet(nn.Module):
                  ):
         super().__init__()
 
-        self.use_ga = use_ga
         self.num_blocks = num_blocks
         self.num_speakers = num_speakers
 
@@ -158,17 +159,16 @@ class TDANet(nn.Module):
 
         self.encoder = Encoder(mixture_dim, 
                                downsample_num_layers=num_layers, 
-                               downsample_rate=rate,
-                               use_ga=self.use_ga)
+                               downsample_rate=rate)
 
-        if self.use_ga:
-            self.ga_block = GlobalAttention(mixture_dim=mixture_dim,
-                                            time_dim=last_time_dim,
-                                            nhead=kwargs['ga_nhead'],
-                                            dropout=kwargs['ga_dropout'],
-                                            kernel_size=kwargs['ga_kernel_size'],
-                                            upsample_num_layers=num_layers,
-                                            upsample_rate=rate)
+        self.ga_block = GlobalAttention(mixture_dim=mixture_dim,
+                                        time_dim=last_time_dim,
+                                        nhead=kwargs['ga_nhead'],
+                                        dropout=kwargs['ga_dropout'],
+                                        kernel_size=kwargs['ga_kernel_size'],
+                                        upsample_num_layers=num_layers,
+                                        upsample_rate=rate,
+                                        use_transformer=use_ga)
         
         self.decoder = LADecoder(mixture_dim=mixture_dim,
                                kernel_size=decoder_kernel_size,
@@ -227,11 +227,8 @@ class TDANet(nn.Module):
 
             x = self.proj_conv(x)
             encoder_out = self.encoder(x)
-            if self.use_ga:
-                residuals = self.ga_block(*encoder_out)[::-1]
-            else:
-                residuals = encoder_out
-            x = self.decoder(residuals[::-1])
+            residuals = self.ga_block(*encoder_out)
+            x = self.decoder(residuals)
             x = x_res + self.inverse_proj(x)
 
         applied_masks = (self.mask_gen(x).view(batch_size, self.latent_dim, self.num_speakers, -1) * encoded_audio.unsqueeze(2)).view(batch_size, self.latent_dim * self.num_speakers, -1)
