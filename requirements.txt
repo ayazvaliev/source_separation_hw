@@ -22,6 +22,10 @@ pystoi
 museval
 torchcodec
 
+opencv-python
+librosa
+gdown
+
 black
 isort
 pre-commit
