@@ -114,6 +114,7 @@ class TDANet(nn.Module):
                  stem_kernel_size,
                  stem_padding,
                  decoder_kernel_size,
+                 ga_kernel_size,
                  num_layers,
                  rate,
                  use_la,
@@ -163,9 +164,9 @@ class TDANet(nn.Module):
 
         self.ga_block = GlobalAttention(mixture_dim=mixture_dim,
                                         time_dim=last_time_dim,
-                                        nhead=kwargs['ga_nhead'],
-                                        dropout=kwargs['ga_dropout'],
-                                        kernel_size=kwargs['ga_kernel_size'],
+                                        nhead=kwargs['mhsa_nhead'],
+                                        dropout=kwargs['mhsa_dropout'],
+                                        kernel_size=ga_kernel_size,
                                         upsample_num_layers=num_layers,
                                         upsample_rate=rate,
                                         use_transformer=use_ga)

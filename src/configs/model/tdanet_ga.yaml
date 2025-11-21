@@ -11,6 +11,6 @@ rate: 2
 use_la: true
 use_ga: true
 num_blocks: 16
-ga_nhead: 8
-ga_dropout: 0.1
 ga_kernel_size: 5
+mhsa_nhead: 8
+mhsa_dropout: 0.1
