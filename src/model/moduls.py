@@ -164,7 +164,8 @@ class MHSA(nn.Module):
         )
 
         attn = attn.transpose(1,2).contiguous() # (B, T, nhead, heads_dim)
-        return self.gln(x.transpose(1, 2) + self.cross_head_linear(attn.view(B, T, -1)).transpose(1, 2))
+        return self.gln(x + self.cross_head_linear(attn.view(B, T, -1)).transpose(1, 2)) # (B, nhead * heads_dim, T)
+
 
 class TransformerLayer(nn.Module):
     def __init__(self,
