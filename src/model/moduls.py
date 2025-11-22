@@ -29,7 +29,7 @@ class GLN(nn.Module):
     def __init__(self, input_channel):
         super().__init__()
         self.mean = nn.Parameter(torch.zeros(input_channel), requires_grad=True)
-        self.var = nn.Parameter(torch.mean(input_channel), requires_grad=True)
+        self.var = nn.Parameter(torch.ones(input_channel), requires_grad=True)
     
     def forward(self, x: torch.Tensor):
         # x [B, F, T]
