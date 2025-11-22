@@ -171,8 +171,8 @@ class BaseTrainer:
                 self.model = self.model_
 
         if self.cfg_trainer.get("from_pretrained", None) is None:
-            self._initialize_optimizer(optimizer_sd, lr_scheduler_sd)
             self.scheduler_config = self.config.get("scheduler_config", None)
+            self._initialize_optimizer(optimizer_sd, lr_scheduler_sd)
 
     def _initialize_optimizer(self, optimizer_sd, lr_scheduler_sd):
         grouped_trainable_params = get_optimizer_grouped_parameters(
@@ -201,6 +201,15 @@ class BaseTrainer:
             self.optimizer.load_state_dict(optimizer_sd)
         if lr_scheduler_sd is not None:
             self.lr_scheduler.load_state_dict(lr_scheduler_sd)
+        
+        if self.scheduler_config is not None and self.scheduler_config.get('set_lr', None) is not None:
+            new_lr = self.scheduler_config.set_lr
+            for pg in self.optimizer.param_groups:
+                pg['lr'] = new_lr
+            if hasattr(self.lr_scheduler, 'base_lrs'):
+                self.lr_scheduler.base_lrs = [new_lr for _ in self.lr_scheduler.base_lrs]
+            if hasattr(self.lr_scheduler, '_last_lr'):
+                self.lr_scheduler._last_lr = [new_lr for _ in self.lr_scheduler._last_lr]
 
     def train(self):
         """
@@ -244,7 +253,7 @@ class BaseTrainer:
                 )
 
                 if epoch % self.save_period == 0 or best:
-                    self._save_checkpoint(epoch, save_best=best, only_best=True)
+                    self._save_checkpoint(epoch, save_best=best, only_best=best)
 
             if stop_process:  # early_stop
                 break
@@ -674,7 +683,7 @@ class BaseTrainer:
                 "of the checkpoint. This may yield an exception when state_dict is loaded."
             )
         else:
-            if getattr(self.model, "_orig_mod", None) is not None:
+            if getattr(self.model_, "_orig_mod", None) is not None:
                 self.model_._orig_mod.load_state_dict(checkpoint["state_dict"])
             else:
                 self.model_.load_state_dict(checkpoint["state_dict"])
