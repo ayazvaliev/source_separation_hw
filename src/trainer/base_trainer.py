@@ -201,6 +201,15 @@ class BaseTrainer:
             self.optimizer.load_state_dict(optimizer_sd)
         if lr_scheduler_sd is not None:
             self.lr_scheduler.load_state_dict(lr_scheduler_sd)
+        
+        if self.scheduler_config is not None and self.scheduler_config.get('set_lr', None) is not None:
+            new_lr = self.scheduler_config.set_lr
+            for pg in self.optimizer.param_groups:
+                pg['lr'] = new_lr
+        if hasattr(self.lr_scheduler, 'base_lrs'):
+            self.lr_scheduler.base_lrs = [new_lr for _ in self.lr_scheduler.base_lrs]
+        if hasattr(self.lr_scheduler, '_last_lr'):
+            self.lr_scheduler._last_lr = [new_lr for _ in self.lr_scheduler._last_lr]
 
     def train(self):
         """
