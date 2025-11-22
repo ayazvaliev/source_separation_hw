@@ -3,8 +3,7 @@ import torch
 from torch import nn
 from torch.nn.functional import softmax, interpolate
 import torch.nn.functional as Funct
-from src.model.A_p_block import AP_block
-#from sru import SRU
+from sru import SRU
 
 
 class RTFSNet(nn.Module):
@@ -19,6 +18,7 @@ class RTFSNet(nn.Module):
         N=6,
         num_layers=4,
         sru_hidden=256,
+        video_dim=512,
         C_a=512,
         comp_coef=4,
         h=20,
@@ -36,7 +36,7 @@ class RTFSNet(nn.Module):
         self.N = N
         self.C_a = C_a
         self.time_dim = time_dim
-        C_v = 512
+        C_v = video_dim
 
         # encoder
         self.audio_encoder = nn.Conv2d(in_channels=2, out_channels=C_a, kernel_size=3, padding=1)
@@ -99,7 +99,7 @@ class RTFSNet(nn.Module):
         # Freq
         self.unfold = nn.Unfold(kernel_size=(1, 8), stride=1, padding=0)
         self.layer_norm = nn.LayerNorm([time, freq - 7])
-        """
+
         self.sru_model = SRU(
             input_size=C_a // comp_coef * 8,
             hidden_size=sru_hidden,
@@ -107,8 +107,8 @@ class RTFSNet(nn.Module):
             bidirectional=True,
             layer_norm=True,
         )
-        """
-        self.sru_model =nn.Linear(in_features=C_a // comp_coef * 8, out_features=2*sru_hidden) 
+
+        # self.sru_model =nn.Linear(in_features=C_a // comp_coef * 8, out_features=2*sru_hidden) 
         self.deconv = nn.ConvTranspose2d(
             in_channels=2 * sru_hidden, out_channels=C_a // comp_coef, kernel_size=8
         )
@@ -116,7 +116,7 @@ class RTFSNet(nn.Module):
         # Time
         self.unfold_1 = nn.Unfold(kernel_size=(1, 8), stride=1, padding=0)
         self.layer_norm_1 = nn.LayerNorm([time - 7, freq])
-        """
+
         self.sru_model_1 = SRU(
             input_size=C_a // comp_coef*8,
             hidden_size=sru_hidden,
@@ -124,8 +124,8 @@ class RTFSNet(nn.Module):
             bidirectional=True,
             layer_norm=True,
         )
-        """
-        self.sru_model_1 = nn.Linear(in_features=C_a // comp_coef*8, out_features=2*sru_hidden)
+
+        # self.sru_model_1 = nn.Linear(in_features=C_a // comp_coef*8, out_features=2*sru_hidden)
         self.deconv_1 = nn.ConvTranspose2d(
             in_channels=2 * sru_hidden, out_channels=C_a // comp_coef, kernel_size=8
         )
