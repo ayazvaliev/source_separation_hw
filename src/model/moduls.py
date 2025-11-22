@@ -28,8 +28,8 @@ class PositionalEncoding(nn.Module):
 class GLN(nn.Module):
     def __init__(self, input_channel):
         super().__init__()
-        self.mean = nn.Parameter(torch.ones(input_channel), requires_grad=True)
-        self.var = nn.Parameter(torch.zeros(input_channel), requires_grad=True)
+        self.mean = nn.Parameter(torch.zeros(input_channel), requires_grad=True)
+        self.var = nn.Parameter(torch.ones(input_channel), requires_grad=True)
     
     def forward(self, x: torch.Tensor):
         # x [B, F, T]
@@ -175,14 +175,18 @@ class TransformerLayer(nn.Module):
                  conv_kernel_size,
                  conv_stride,
                  conv_dilation,
-                 conv_padding
+                 conv_padding,
+                 ffn_only
     ):
         super().__init__()
         self.pos_encoder = PositionalEncoding(input_channel, time_dim)
-        self.mhsa = MHSA(embed_dim=input_channel, 
-                         nhead=mhsa_nhead, 
-                         dropout=mhsa_dropout
-                        )
+        if not ffn_only:
+            self.mhsa = MHSA(embed_dim=input_channel, 
+                            nhead=mhsa_nhead, 
+                            dropout=mhsa_dropout
+                            )
+        else:
+            self.mhsa = nn.Identity()
         self.ffn = FFN(
             input_channel=input_channel,
             kernel_size=conv_kernel_size,

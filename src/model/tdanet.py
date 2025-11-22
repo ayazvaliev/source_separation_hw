@@ -66,6 +66,7 @@ class GlobalAttention(nn.Module):
                  upsample_num_layers,
                  upsample_rate,
                  use_transformer=True,
+                 ffn_only=False,
                  nhead=None,
                  dropout=None):
         super().__init__()
@@ -79,7 +80,8 @@ class GlobalAttention(nn.Module):
                 kernel_size,
                 conv_stride=1,
                 conv_dilation=1,
-                conv_padding=kernel_size//2
+                conv_padding=kernel_size//2,
+                ffn_only=ffn_only
             )
         self.la = LADecoder(
             mixture_dim=mixture_dim,
@@ -167,6 +169,7 @@ class TDANet(nn.Module):
                                         time_dim=last_time_dim,
                                         nhead=kwargs['mhsa_nhead'] if use_ga else None,
                                         dropout=kwargs['mhsa_dropout'] if use_ga else None,
+                                        ffn_only=kwargs['ga_ffn_only'],
                                         kernel_size=ga_kernel_size,
                                         upsample_num_layers=num_layers,
                                         upsample_rate=rate,
