@@ -3,6 +3,7 @@ import torch
 from torch import nn
 from torch.nn.functional import softmax, interpolate
 import torch.nn.functional as Funct
+from src.model.A_p_block import AP_block
 #from sru import SRU
 
 
@@ -28,6 +29,7 @@ class RTFSNet(nn.Module):
         self.hop_length = hop_length
         self.win_length = win_length
         self.n_fft = n_fft
+        self.VP = AP_block()
 
         self.register_buffer("window", torch.hann_window(self.n_fft), False)
 
@@ -184,6 +186,7 @@ class RTFSNet(nn.Module):
 
         # AP
         audio = self.audio_encoder(stft_spec).transpose(2, 3) # [B, C_a, T, F]
+
         print(audio.shape)
         audio_time = audio.size(-2)
         a_0 = audio
@@ -191,7 +194,8 @@ class RTFSNet(nn.Module):
         # VP
         # Конкатим и проектируем в нужную канальность [B, F=C_a, T]
         video = self.video_proj(torch.concat([mouth1_emb, mouth2_emb], dim=-1).transpose(1, 2)) 
-
+        video = self.VP(video)
+        print(video.shape)
         # CAF block
         audio_val = self.conv_for_audio_1(audio) 
         audio_val = self.glob_layer_norm_3(audio_val.transpose(2,3)).transpose(2,3)
@@ -289,7 +293,7 @@ class RTFSNet(nn.Module):
         for t in range(T):
             slice_t = x[:, :, t, :]          
             slice_t = slice_t.permute(2, 0, 1)    
-            #slice_f, _ = self.sru_model(slice_f)
+            #slice_t, _ = self.sru_model(slice_f)
             slice_t = self.sru_model(slice_t)
 
             slice_t = slice_t.permute(1, 2, 0)
