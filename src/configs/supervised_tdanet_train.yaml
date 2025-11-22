@@ -26,6 +26,7 @@ lr_scheduler:
 scheduler_config:
   monitor_part: val
   monitor_metric: SI-SDR
+  set_lr: null
 
 loss_function:
   _target_: src.loss.SNRLoss
