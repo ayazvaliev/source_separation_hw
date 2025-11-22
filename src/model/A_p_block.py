@@ -1,5 +1,3 @@
-from src.model.moduls import GLN
-import torch
 from torch import nn
 from src.model.moduls import TransformerLayer
 from torch.nn.functional import interpolate

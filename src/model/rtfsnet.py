@@ -1,9 +1,9 @@
-from src.model.moduls import GLN, Encoder, TransformerLayer
+from src.model.moduls import GLN
 import torch
 from torch import nn
 from torch.nn.functional import softmax, interpolate
-import torch.nn.functional as Funct
 from sru import SRU
+from src.model.A_p_block import AP_block
 
 
 class RTFSNet(nn.Module):
