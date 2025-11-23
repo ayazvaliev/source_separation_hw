@@ -46,7 +46,7 @@ def main(config):
     metrics = instantiate(config.metrics)
 
     # save_path for model predictions
-    save_path = Path(config.inferencer.get("save_path", ROOT_PATH / "data" / "saved"))
+    save_path = Path(config.inferencer['save_path'] or ROOT_PATH / "data" / "saved")
     save_path.mkdir(exist_ok=True, parents=True)
 
     inferencer = Inferencer(
