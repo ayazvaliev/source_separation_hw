@@ -141,7 +141,7 @@ class Inferencer(BaseTrainer):
                 for speaker_id, speaker_dir in enumerate(['s1', 's2']):
                     save_name = part_save_path / speaker_dir / audio_mix_name 
                 torchaudio.save(save_name,
-                                batch['logits'][i, speaker_id:speaker_id+1],
+                                batch['logits'][i, speaker_id:speaker_id+1].cpu(),
                                 sample_rate=16_000,
                                 format=audio_mix_name.split('.')[-1])
 
