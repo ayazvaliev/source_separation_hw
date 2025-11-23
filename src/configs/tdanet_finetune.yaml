@@ -37,7 +37,8 @@ trainer:
   compile: True
   ts_compile: False # врубает торчскриптовский jit. Не работает с автокастом >:(
   device_tensors: ["audio_s1", "audio_s2", "audio_mix"] # which tensors should be on device (ex. GPU)
-  resume_from: "model_best.pth" # null or path to the checkpoint dir with *.pth and config.yaml
+  resume_from: null # null or path to the checkpoint dir with *.pth and config.yaml
+  from_pretrained: null
   device: auto # device name or "auto"
   override: True # if True, will override the previous run with the same name
   monitor: "max val_SI-SNRi" # "off" or "max/min metric_name", i.e. our goal is to maximize/minimize metric

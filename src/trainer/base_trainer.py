@@ -170,9 +170,8 @@ class BaseTrainer:
             else:
                 self.model = self.model_
 
-        if self.cfg_trainer.get("from_pretrained", None) is None:
-            self.scheduler_config = self.config.get("scheduler_config", None)
-            self._initialize_optimizer(optimizer_sd, lr_scheduler_sd)
+        self.scheduler_config = self.config.get("scheduler_config", None)
+        self._initialize_optimizer(optimizer_sd, lr_scheduler_sd)
 
     def _initialize_optimizer(self, optimizer_sd, lr_scheduler_sd):
         grouped_trainable_params = get_optimizer_grouped_parameters(

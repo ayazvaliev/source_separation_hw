@@ -29,7 +29,7 @@ scheduler_config:
   set_lr: null
 
 loss_function:
-  _target_: src.loss.SNRLoss
+  _target_: src.loss.SISNRLoss
 
 trainer:
   log_step: 500
