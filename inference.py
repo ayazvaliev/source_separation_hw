@@ -8,6 +8,7 @@ from src.datasets.data_utils import get_dataloaders
 from src.trainer import Inferencer
 from src.utils.init_utils import set_random_seed
 from src.utils.io_utils import ROOT_PATH
+from pathlib import Path
 
 warnings.filterwarnings("ignore", category=UserWarning)
 
@@ -45,7 +46,7 @@ def main(config):
     metrics = instantiate(config.metrics)
 
     # save_path for model predictions
-    save_path = config.inferencer.get("save_path", ROOT_PATH / "data" / "saved")
+    save_path = Path(config.inferencer.get("save_path", ROOT_PATH / "data" / "saved"))
     save_path.mkdir(exist_ok=True, parents=True)
 
     inferencer = Inferencer(
