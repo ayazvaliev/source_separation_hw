@@ -5,6 +5,10 @@ defaults:
   - dataloader: dataloader
   - transforms: transforms_supervised_mix
   - _self_
+
+root_dir: "."
+index_dir: "indexes"
+
 inferencer:
   device_tensors: ["audio_s1", "audio_s2", "audio_mix"] # which tensors should be on device (ex. GPU)
   device: auto # device name or "auto"
