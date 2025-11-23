@@ -181,7 +181,6 @@ class Inferencer(BaseTrainer):
                 batch = self.process_batch(
                     batch_idx=batch_idx,
                     batch=batch,
-                    part=part,
                     metrics=self.evaluation_metrics,
                     part_save_path=part_save_path
                 )
