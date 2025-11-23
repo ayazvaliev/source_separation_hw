@@ -6,6 +6,7 @@ train:
   name: train
   sr: 16000
   instance_transforms: ${transforms.instance_transforms.train}
+  get_mouths: False
 
 val:
   _target_: src.datasets.MainDataset
@@ -15,3 +16,4 @@ val:
   sr: 16000
   instance_transforms: ${transforms.instance_transforms.inference}
   limit: 1000
+  get_mouths: False

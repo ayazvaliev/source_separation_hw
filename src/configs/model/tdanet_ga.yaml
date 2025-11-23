@@ -14,3 +14,4 @@ num_blocks: 16
 ga_kernel_size: 5
 mhsa_nhead: 8
 mhsa_dropout: 0.1
+ga_ffn_only: False
