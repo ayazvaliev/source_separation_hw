@@ -121,7 +121,7 @@ class TDANet(nn.Module):
                  num_layers,
                  rate,
                  use_la,
-                 use_ga,
+                 use_transformer,
                  num_blocks,
                  **kwargs
                  ):
@@ -167,13 +167,13 @@ class TDANet(nn.Module):
 
         self.ga_block = GlobalAttention(mixture_dim=mixture_dim,
                                         time_dim=last_time_dim,
-                                        nhead=kwargs['mhsa_nhead'] if use_ga else None,
-                                        dropout=kwargs['mhsa_dropout'] if use_ga else None,
-                                        ffn_only=kwargs['ga_ffn_only'],
+                                        nhead=kwargs['mhsa_nhead'] if use_transformer else None,
+                                        dropout=kwargs['mhsa_dropout'] if use_transformer else None,
+                                        ffn_only=kwargs.get('ga_ffn_only', False),
                                         kernel_size=ga_kernel_size,
                                         upsample_num_layers=num_layers,
                                         upsample_rate=rate,
-                                        use_transformer=use_ga)
+                                        use_transformer=use_transformer)
         
         self.decoder = LADecoder(mixture_dim=mixture_dim,
                                kernel_size=decoder_kernel_size,

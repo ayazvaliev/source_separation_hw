@@ -9,6 +9,6 @@ decoder_kernel_size: 5
 num_layers: 4
 rate: 2
 use_la: true
-use_ga: false
+use_transformer: false
 num_blocks: 16
 ga_kernel_size: 5
