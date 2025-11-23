@@ -34,7 +34,7 @@ loss_function:
 trainer:
   log_step: 500
   val_step: 15
-  n_epochs: 500
+  n_epochs: 150
   gradient_accumulation: null
   max_grad_norm: 5
   mixed_precision: float32
