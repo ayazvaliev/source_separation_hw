@@ -721,7 +721,6 @@ class BaseTrainer:
         else:
             print(f"Loading model weights from: {pretrained_path} ...")
         checkpoint = torch.load(pretrained_path, map_location=self.device, weights_only=False)
-        self.model_.to("cpu")
 
         if checkpoint.get("state_dict") is not None:
             sd = checkpoint["state_dict"]
