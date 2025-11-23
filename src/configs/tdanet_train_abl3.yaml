@@ -1,0 +1,52 @@
+defaults:
+  - model: tdanet
+  - writer: cometml
+  - metrics: example
+  - datasets: dataset
+  - dataloader: dataloader
+  - transforms: transforms
+  - _self_
+
+data_root: "."
+index_dir: "indexes"
+aug_dir: "augs"
+
+optimizer:
+  cls: torch.optim.Adam
+  weight_decay: 0.0
+  optimizer_config:
+    lr: 1e-3
+
+lr_scheduler:
+  _target_: torch.optim.lr_scheduler.ReduceLROnPlateau
+  mode: max
+  factor: 0.5
+  patience: 1 # если проставлен val_step, то фактический patience = patience * val_step
+
+scheduler_config:
+  monitor_part: val
+  monitor_metric: SI-SDR
+  set_lr: null
+
+loss_function:
+  _target_: src.loss.SNRLoss
+
+trainer:
+  log_step: 300
+  val_step: 10
+  n_epochs: 40
+  gradient_accumulation: null
+  max_grad_norm: 5
+  mixed_precision: float32
+  compile: True
+  ts_compile: False # врубает торчскриптовский jit. Не работает с автокастом >:(
+  device_tensors: ["audio_s1", "audio_s2", "audio_mix"] # which tensors should be on device (ex. GPU)
+  resume_from: null # null or path to the checkpoint dir with *.pth and config.yaml
+  device: auto # device name or "auto"
+  override: True # if True, will override the previous run with the same name
+  monitor: "max val_SI-SNRi" # "off" or "max/min metric_name", i.e. our goal is to maximize/minimize metric
+  save_period: 30 # checkpoint each save_period epochs in addition to the best epoch
+  early_stop: 5 # epochs for early stopping
+  save_dir: "saved"
+  seed: 1
+#these are for using batch_transforms which do random augmentation to the model current audio s1

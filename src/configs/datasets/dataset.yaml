@@ -1,6 +1,7 @@
 train:
   _target_: src.datasets.MainDataset
   data_root: ${data_root}
+  data_url: https://disk.360.yandex.ru/d/9k_k6G6a03GURg
   index_dir: ${index_dir}
   name: train
   sr: 16000

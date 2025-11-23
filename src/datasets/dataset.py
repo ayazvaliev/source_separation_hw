@@ -24,7 +24,7 @@ class MainDataset(BaseDataset):
         data_root,
         name="train", 
         index_dir=None,
-        dataset_url=None,
+        dataset_url="https://disk.360.yandex.ru/d/9k_k6G6a03GURg",
         get_mouths=True,
         *args, 
         **kwargs
