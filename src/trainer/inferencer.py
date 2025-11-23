@@ -102,7 +102,7 @@ class Inferencer(BaseTrainer):
             part_logs[part] = logs
         return part_logs
 
-    def process_batch(self, batch, metrics, part_save_path):
+    def process_batch(self, batch_idx, batch, metrics, part_save_path):
         """
         Run batch through the model, compute metrics, and
         save predictions to disk.
