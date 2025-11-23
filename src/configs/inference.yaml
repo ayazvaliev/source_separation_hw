@@ -6,7 +6,7 @@ defaults:
   - transforms: transforms_supervised_mix
   - _self_
 
-root_dir: "."
+data_root: "."
 index_dir: "indexes"
 
 inferencer:
