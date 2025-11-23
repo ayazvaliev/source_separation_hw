@@ -143,7 +143,7 @@ class Inferencer(BaseTrainer):
                 torchaudio.save(save_name,
                                 batch['logits'][i, speaker_id:speaker_id+1],
                                 sample_rate=16_000,
-                                format=audio_mix_name.suffix)
+                                format=audio_mix_name.split('.')[-1])
 
         return batch
 
