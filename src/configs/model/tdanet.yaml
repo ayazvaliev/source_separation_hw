@@ -12,3 +12,4 @@ use_la: true
 use_ga: false
 num_blocks: 16
 ga_kernel_size: 5
+ga_ffn_only: false
