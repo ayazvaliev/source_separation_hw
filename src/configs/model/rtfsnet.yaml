@@ -1,12 +1,13 @@
 _target_: src.model.RTFSNet
-n_feats: 128
 n_fft: 256
 hop_length: 128
 win_length: 256
 N: 6
 num_layers: 4
 sru_hidden: 256
+video_dim: 512
 C_a: 512
 comp_coef: 4
 h: 20
+proj_kernel_video: 3 
 kernel_video: 3

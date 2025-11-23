@@ -33,7 +33,7 @@ trainer:
   mixed_precision: float32
   compile: True
   ts_compile: False # врубает торчскриптовский jit. Не работает с автокастом >:(
-  device_tensors: ["audio_s1", "audio_s2", "audio_mix"] # which tensors should be on device (ex. GPU)
+  device_tensors: ["audio_s1", "audio_s2", "audio_mix", "mouth1_emb", "mouth2_emb"] # which tensors should be on device (ex. GPU)
   resume_from: null # null or path to the checkpoint dir with *.pth and config.yaml
   device: auto # device name or "auto"
   override: True # if True, will override the previous run with the same name

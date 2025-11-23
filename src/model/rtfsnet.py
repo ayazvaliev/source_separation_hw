@@ -46,7 +46,6 @@ class RTFSNet(nn.Module):
 
     def __init__(
         self,
-        n_feats,
         n_fft,
         hop_length,
         win_length,
@@ -82,10 +81,11 @@ class RTFSNet(nn.Module):
         self.h = h
         self.C_a = C_a
 
+        # Слой проекции из num_speakers видео эмебдов в один видео эмбед
         self.video_proj = nn.Sequential(
             GLN(C_v*2),
             nn.Conv1d(
-                in_channels=C_v * 2,
+                in_channels=C_v * num_speakers,
                 out_channels=C_v,
                 kernel_size=proj_kernel_video,
                 padding=proj_kernel_video // 2,
@@ -113,8 +113,8 @@ class RTFSNet(nn.Module):
         self.conv_for_audio_2 = nn.Conv2d(
             in_channels=C_a, out_channels=C_a, kernel_size=1, groups=C_a
         )
-        self.glob_layer_norm_3 = GLN(n_feats)
-        self.glob_layer_norm_4 = GLN(n_feats)
+        self.glob_layer_norm_3 = GLN(C_a)
+        self.glob_layer_norm_4 = GLN(C_a)
         self.relu = nn.ReLU()
 
         # RTFS
@@ -129,8 +129,8 @@ class RTFSNet(nn.Module):
         self.compression_TF_2 = nn.Conv2d(
             in_channels=C_a// comp_coef, out_channels=C_a// comp_coef, kernel_size=4, stride=2, padding=2
         )
-        time = (time_dim//2+1)//2+1
-        freq = (n_feats//2 + 1)//2 + 1
+        freq = (n_fft // 2 + 1) // 2 # F -> T // 2
+        time = ((time_dim - n_fft) // hop_length + 1) // 2 # T спектрограммы -> T // 2
         self.adaptive_pool = nn.AdaptiveAvgPool2d((time, freq))
 
         # Freq
@@ -263,9 +263,9 @@ class RTFSNet(nn.Module):
         RTFS_res = caf_result
         print(RTFS_res.shape)
 
-        # SSS
-        z = self.sss_block(self.prelu(RTFS_res))
-        return {"logits": self.decoder(z)}
+        # SSS (масген) []
+        z = self.sss_block(self.prelu(RTFS_res)) # [B, C_a, T, F] - > [B, num_speakers, C_a, T, F]
+        return {"logits": self.decoder(z)} # [B, num_speakers, C_a, T, F] -> [B, num_speakers, T_{вавеформ}]
 
     def decoder(self, x):
         # x [B, num_speakers, C_a, T, F]
@@ -284,7 +284,7 @@ class RTFSNet(nn.Module):
             hop_length=self.hop_length,
             win_length=self.win_length,
             window=self.window,
-        ).view(B, num_speakers, -1) # [B, num_speakers, T_{waveform}]
+        ).view(B, num_speakers, -1) # [B, num_speakers, T_{вавеформ}]
         return waveforms
 
     def RTFS(self, x):

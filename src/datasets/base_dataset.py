@@ -85,7 +85,7 @@ class BaseDataset(Dataset):
         mouth_embs = ["mouth1_emb", "mouth2_emb"]
         mouth_emb_dict = {}
         for name in mouth_embs:
-            file = np.load(data_dict[name])
+            file = np.load(data_dict[name + "_path"])
             mouth_emb_dict[name] = torch.from_numpy(file["data"])
         
         data_dict.update(mouth_emb_dict)
