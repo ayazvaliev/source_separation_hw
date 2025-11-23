@@ -130,7 +130,7 @@ class Inferencer(BaseTrainer):
         outputs = self.model(batch["audio_mix"])
         batch.update(outputs)
 
-        if metrics is not None:
+        if "audio_concat" in batch and metrics is not None:
             for met in self.metrics["inference"]:
                 metrics.update(met.name, met(**batch))
 

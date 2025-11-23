@@ -462,7 +462,9 @@ class BaseTrainer:
         transform_type = "train" if self.is_train else "inference"
         transforms = self.batch_transforms.get(transform_type)
         if transforms is None:
-            batch["audio_concat"] = torch.concat([batch["audio_s1"], batch["audio_s2"]], dim=1)
+            if "audio_s1" in batch and "audio_s2" in batch:
+                batch["audio_concat"] = torch.concat([batch["audio_s1"], batch["audio_s2"]], dim=1).to(self.device)
+
             return batch
         
         used_transforms = set()
@@ -479,7 +481,8 @@ class BaseTrainer:
                 batch["audio_mix"] = transforms["audio_mix"](batch["audio_mix"])
                 used_transforms.add("audio_mix")
 
-        batch["audio_concat"] = torch.concat([batch["audio_s1"], batch["audio_s2"]], dim=1)
+        if "audio_s1" in batch and "audio_s2" in batch:
+            batch["audio_concat"] = torch.concat([batch["audio_s1"], batch["audio_s2"]], dim=1).to(self.device)
 
         if "get_spectrogram" in transforms:
             batch["spectrogram_mix"] = transforms["get_spectrogram"](batch["audio_mix"])

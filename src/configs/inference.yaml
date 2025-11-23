@@ -11,7 +11,7 @@ index_dir: "indexes"
 dataset_url: null
 
 inferencer:
-  device_tensors: ["audio_s1", "audio_s2", "audio_mix"] # which tensors should be on device (ex. GPU)
+  device_tensors: ["audio_mix"] # which tensors should be on device (ex. GPU)
   device: auto # device name or "auto"
   save_path: null # any name here, can be a dataset name
   seed: 1
