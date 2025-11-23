@@ -1,6 +1,8 @@
 import torch
+import torchaudio
 from tqdm.auto import tqdm
 
+from pathlib import Path
 from src.metrics.tracker import MetricTracker
 from src.trainer.base_trainer import BaseTrainer
 
@@ -56,15 +58,16 @@ class Inferencer(BaseTrainer):
 
         self.device = device
 
-        self.model = model
+        self.model_ = model
         self.batch_transforms = batch_transforms
+        self.torchscript = self.cfg_trainer.get("ts_compile", False)
 
         # define dataloaders
         self.evaluation_dataloaders = {k: v for k, v in dataloaders.items()}
 
         # path definition
 
-        self.save_path = save_path
+        self.save_path = Path(save_path)
 
         # define metrics
         self.metrics = metrics
@@ -80,6 +83,11 @@ class Inferencer(BaseTrainer):
             # init model
             self._from_pretrained(config.inferencer.get("from_pretrained"))
 
+        if self.torchscript:
+            self.model = torch.jit.script(self.model_)
+        else:
+            self.model = self.model_
+
     def run_inference(self):
         """
         Run inference on each partition.
@@ -94,7 +102,7 @@ class Inferencer(BaseTrainer):
             part_logs[part] = logs
         return part_logs
 
-    def process_batch(self, batch_idx, batch, metrics, part):
+    def process_batch(self, batch, metrics, part_save_path):
         """
         Run batch through the model, compute metrics, and
         save predictions to disk.
@@ -126,29 +134,16 @@ class Inferencer(BaseTrainer):
             for met in self.metrics["inference"]:
                 metrics.update(met.name, met(**batch))
 
-        # Some saving logic. This is an example
-        # Use if you need to save predictions on disk
-
-        batch_size = batch["logits"].shape[0]
-        current_id = batch_idx * batch_size
-
-        for i in range(batch_size):
-            # clone because of
-            # https://github.com/pytorch/pytorch/issues/1995
-            logits = batch["logits"][i].clone()
-            label = batch["labels"][i].clone()
-            pred_label = logits.argmax(dim=-1)
-
-            output_id = current_id + i
-
-            output = {
-                "pred_label": pred_label,
-                "label": label,
-            }
-
-            if self.save_path is not None:
-                # you can use safetensors or other lib here
-                torch.save(output, self.save_path / part / f"output_{output_id}.pth")
+        if part_save_path is not None:
+            batch_size = batch['logits'].size(0)
+            for i in range(batch_size):
+                audio_mix_name = batch['audio_mix'][i].name
+                for speaker_id, speaker_dir in enumerate(['s1', 's2']):
+                    save_name = self.save_path / speaker_dir / audio_mix_name 
+                torchaudio.save(save_name,
+                                batch['logits'][i, speaker_id:speaker_id+1],
+                                sample_rate=16_000,
+                                format=audio_mix_name.suffix)
 
         return batch
 
@@ -170,7 +165,12 @@ class Inferencer(BaseTrainer):
 
         # create Save dir
         if self.save_path is not None:
-            (self.save_path / part).mkdir(exist_ok=True, parents=True)
+            part_save_path = self.save_path / part
+            part_save_path.mkdir(exist_ok=True, parents=True)
+            (part_save_path / "s1").mkdir(exist_ok=True)
+            (part_save_path / "s2").mkdir(exist_ok=True)
+        else:
+            part_save_path = None
 
         with torch.no_grad():
             for batch_idx, batch in tqdm(
@@ -183,6 +183,7 @@ class Inferencer(BaseTrainer):
                     batch=batch,
                     part=part,
                     metrics=self.evaluation_metrics,
+                    part_save_path=part_save_path
                 )
 
         return self.evaluation_metrics.result()

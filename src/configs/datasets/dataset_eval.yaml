@@ -1,0 +1,7 @@
+val:
+  _target_: src.datasets.MainDataset
+  data_root: ${data_root}
+  index_dir: ${index_dir}
+  name: val
+  sr: 16000
+  instance_transforms: ${transforms.instance_transforms.inference}

@@ -37,11 +37,15 @@ def main(config):
     model = instantiate(config.model).to(device)
     print(model)
 
+    if config.inferencer.get("compile", False):
+        assert not config.trainer.get("ts_compile", False)
+        model = torch.compile(model, fullgraph=True, mode='reduce-overhead')
+
     # get metrics
     metrics = instantiate(config.metrics)
 
     # save_path for model predictions
-    save_path = ROOT_PATH / "data" / "saved" / config.inferencer.save_path
+    save_path = config.inferencer.get("save_path", ROOT_PATH / "data" / "saved")
     save_path.mkdir(exist_ok=True, parents=True)
 
     inferencer = Inferencer(

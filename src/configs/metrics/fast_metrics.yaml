@@ -7,7 +7,3 @@ inference: # metrics that are calculated during inference (eval)
 
   - _target_: src.metrics.SDRi
     name: SDRi
-
-  - _target_: src.metrics.SISDR
-    name: SI-SDR
-  
