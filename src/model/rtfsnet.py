@@ -6,6 +6,42 @@ from sru import SRU
 from src.model.A_p_block import AP_block
 
 
+class MaskGen(nn.Module):
+    def __init__(self,
+                 input_channel,
+                 num_speakers,
+                 kernel_size):
+        self.num_speakers = num_speakers
+        self.input_channel = input_channel
+
+        self.mask_gen = nn.Sequential(
+            nn.Conv2d(
+                in_channels=input_channel,
+                out_channels=input_channel*num_speakers,
+                kernel_size=kernel_size,
+                padding=kernel_size//2
+            ),
+            GLN(input_channel*num_speakers),
+            nn.ReLU()
+        )
+
+    def forward(self, x: torch.Tensor):
+        # [B, C_a, T, F]
+        batch_size = x.size(0)
+        t_dim, f_dim = x.size(-2), x.size(-1)
+        masks = self.mask_gen(x).view(batch_size, self.num_speakers, self.input_channel, t_dim, f_dim)
+
+        m_r = masks[:, :, :self.input_channel // 2, :, :]
+        m_i = masks[:, :, self.input_channel // 2 :, :, :]
+
+        E_r = x[:, : self.input_channel, :, :].unsqueeze(1)
+        E_i = x[:, self.input_channel :, :, :].unsqueeze(1)
+
+        z_r = m_r * E_r - m_i * E_i
+        z_i = m_r * E_r + m_i * E_i
+
+        return torch.cat([z_r, z_i], dim=2) # [B, num_speakers, C_a, T, F]
+
 class RTFSNet(nn.Module):
 
     def __init__(
@@ -15,6 +51,7 @@ class RTFSNet(nn.Module):
         hop_length,
         win_length,
         time_dim,
+        num_speakers=2,
         N=6,
         num_layers=4,
         sru_hidden=256,
@@ -164,12 +201,12 @@ class RTFSNet(nn.Module):
         self.conv_ups = nn.Conv2d(C_a // comp_coef, C_a, kernel_size=5, padding=2)
 
         # SSS
-
-        self.conv_sss = nn.Conv2d(C_a, C_a, kernel_size=1)
+        self.sss_block = MaskGen(input_channel=C_a,
+                                 num_speakers=num_speakers,
+                                 kernel_size=1)
 
         # decoder
-
-        self.dec_tr_conv = nn.ConvTranspose2d(C_a, 2, kernel_size=3, stride=1, padding=1)
+        self.dec_tr_conv = nn.ConvTranspose2d(C_a * num_speakers, 2 * num_speakers, kernel_size=3, stride=1, padding=1)
 
     def forward(self, audio_mix: torch.Tensor, mouth1_emb: torch.Tensor, mouth2_emb: torch.Tensor, **batch):
         # mouth embs [B, T, F]
@@ -225,40 +262,30 @@ class RTFSNet(nn.Module):
 
         RTFS_res = caf_result
         print(RTFS_res.shape)
-        m = self.relu(self.conv_sss(self.prelu(RTFS_res)))
-        
+
         # SSS
-        m_r = m[:, : self.C_a // 2, :, :]
-        m_i = m[:, self.C_a // 2 :, :, :]
-
-        E_r = a_0[:, : self.C_a // 2, :, :]
-        E_i = a_0[:, self.C_a // 2 :, :, :]
-
-        z_r = m_r * E_r - m_i * E_i
-        z_i = m_r * E_r + m_i * E_i
-
-        z = torch.cat((z_r, z_i), dim=1)
-
+        z = self.sss_block(self.prelu(RTFS_res))
         return {"logits": self.decoder(z)}
 
     def decoder(self, x):
+        # x [B, num_speakers, C_a, T, F]
+        B, num_speakers, C, T, F = x.shape
+        
         print(x.shape)
-        res = self.dec_tr_conv(x)
-        print(res.shape)
-        real = res[:, 0, :, :]
-        imag = res[:, 1, :, :]
-        print(real.shape)
-        complex_spec = torch.complex(real, imag).transpose(1,2)
+        res = self.dec_tr_conv(x.view(B * num_speakers, C, T, F)).view(B, num_speakers, 2, T, F)
+        real = res[:, :, 0, :, :]
+        imag = res[:, :, 1, :, :]
+        complex_spec = torch.complex(real, imag).transpose(1,2) # [B, num_speakers, F, T]
         print(complex_spec.shape)
 
-        waveform = torch.istft(
-            complex_spec,
+        waveforms = torch.istft(
+            complex_spec.view(B * num_speakers, F, T), # [B * num_speakers, F, T]
             n_fft=self.n_fft,
             hop_length=self.hop_length,
             win_length=self.win_length,
             window=self.window,
-        )
-        return waveform
+        ).view(B, num_speakers, -1) # [B, num_speakers, T_{waveform}]
+        return waveforms
 
     def RTFS(self, x):
         B,C,T,F = x.shape
