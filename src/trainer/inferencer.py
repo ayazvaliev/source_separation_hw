@@ -137,9 +137,9 @@ class Inferencer(BaseTrainer):
         if part_save_path is not None:
             batch_size = batch['logits'].size(0)
             for i in range(batch_size):
-                audio_mix_name = batch['audio_mix'][i].name
+                audio_mix_name = batch['audio_mix_path'][i].name
                 for speaker_id, speaker_dir in enumerate(['s1', 's2']):
-                    save_name = self.save_path / speaker_dir / audio_mix_name 
+                    save_name = part_save_path / speaker_dir / audio_mix_name 
                 torchaudio.save(save_name,
                                 batch['logits'][i, speaker_id:speaker_id+1],
                                 sample_rate=16_000,
