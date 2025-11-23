@@ -8,6 +8,7 @@ defaults:
 
 data_root: "."
 index_dir: "indexes"
+dataset_url: null
 
 inferencer:
   device_tensors: ["audio_s1", "audio_s2", "audio_mix"] # which tensors should be on device (ex. GPU)

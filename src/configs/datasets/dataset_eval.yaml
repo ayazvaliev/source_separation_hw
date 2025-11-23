@@ -1,7 +1,8 @@
 val:
   _target_: src.datasets.MainDataset
   data_root: ${data_root}
-  index_dir: ${index_dir}
   name: val
+  inference_mode: true
+  dataset_url: ${dataset_url}
   sr: 16000
   instance_transforms: ${transforms.instance_transforms.inference}

@@ -19,6 +19,7 @@ class MainDataset(BaseDataset):
         index_dir=None,
         dataset_url=None,
         get_mouths=False,
+        inference_mode=False,
         *args, 
         **kwargs
     ):
@@ -31,28 +32,36 @@ class MainDataset(BaseDataset):
         """
         self.get_mouths = get_mouths
         self.data_root = Path(data_root)
-        if index_dir is None:
-            index_dir = data_root
-        else:
-            index_dir = Path(index_dir)
-        index_path = index_dir if index_dir is not None else self.data_root
-        index_path = index_path / name / "index.json"
+        self.inference_mode = inference_mode
 
-        # each nested dataset class must have an index field that
-        # contains list of dicts. Each dict contains information about
-        # the object, including label, path, etc.
-        if index_path.exists():
-            index = read_json(index_path)
+        if not inference_mode:
+            if index_dir is None:
+                index_dir = self.data_root
+            else:
+                index_dir = Path(index_dir)
+            index_path = index_path / name / "index.json"
+
+            # each nested dataset class must have an index field that
+            # contains list of dicts. Each dict contains information about
+            # the object, including label, path, etc.
+            if index_path.exists():
+                index = read_json(index_path)
+            else:
+                os.makedirs(str(index_path.parent), exist_ok=True)
+                index = self._create_index(name, index_path, dataset_url)
         else:
-            os.makedirs(str(index_path.parent), exist_ok=True)
-            index = self._create_index(name, index_path, dataset_url)
+            index = self._create_index(name=None,
+                                       index_path=None,
+                                       dataset_url=dataset_url,
+                                       write_to_disk=False)
 
         super().__init__(index, get_mouths, *args, **kwargs)
 
     def _create_index(self, 
                       name: str, 
                       index_path: Path,
-                      dataset_url: None | str):
+                      dataset_url: None | str,
+                      write_to_disk=True):
         """
         Create index for the dataset. The function processes dataset metadata
         and utilizes it to get information dict for each element of
@@ -67,25 +76,43 @@ class MainDataset(BaseDataset):
                 such as label and object path.
         """
         index = []
-        print("dataset_url", dataset_url)
+        top_level_dir = None
         if dataset_url is not None:
             if dataset_url.startswith('http'):
-                output_path = self.data_root / "dla_dataset.zip"
-                y = yadisk.Client()
+                y = yadisk.YaDisk()
+                meta = y.get_public_meta(dataset_url)
+                total_size = meta.size
+                file_name = meta.name
 
-                print("Downloading ZIP from Yandex.Disk...")
-                y.download_public(dataset_url, str(output_path))
+                print(f"Downloading {file_name} ({total_size / 1e6:.2f} MB)")
 
-                with zipfile.ZipFile(output_path, 'r') as zip_ref:
-                    zip_ref.extractall(str(self.data_root))
-        
-                os.remove(output_path)
+                archive_path = self.data_root / file_name
+                y.download_public(dataset_url, str(archive_path))
+
+                with zipfile.ZipFile(archive_path, 'r') as zip_ref:
+                    zip_ref.extractall(self.data_root)
+                    top_level_dir = set(
+                        name.split(".")[0]
+                        for name in zip_ref.namelist()
+                        if name.strip()
+                    )
+                    assert len(top_level_dir) == 1 or len(top_level_dir.intersection({"audio", "mouths"})) == 2, "Wrong format for inference dir"
+                    if len(top_level_dir) == 1:
+                        top_level_dir = top_level_dir.pop()
+                    else:
+                        top_level_dir = None
+
+                os.remove(archive_path)
             else:
                 raise RuntimeError("dataset path must be either URL or None")
-
-        audio_path = self.data_root / "dla_dataset" / "audio" / name 
-        mouths_path  =  self.data_root / "dla_dataset" / "mouths"
         
+        if not self.inference_mode:
+            audio_path = self.data_root / "dla_dataset" / "audio" / name 
+            mouths_path  =  self.data_root / "dla_dataset" / "mouths"
+        else:
+            top_level_dir = top_level_dir or ""
+            audio_path = self.data_root / top_level_dir / "audio"
+            mouths_path  =  self.data_root / top_level_dir / "mouths"
      
         for item in tqdm((audio_path / "mix").iterdir()):
             # create dataset
@@ -125,7 +152,8 @@ class MainDataset(BaseDataset):
             index.append(data_instance)
 
         # write index to disk
-        write_json(index, str(index_path))
+        if write_to_disk:
+            write_json(index, str(index_path))
    
         return index
 
