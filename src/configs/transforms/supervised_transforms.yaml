@@ -1,0 +1,8 @@
+# просто берем миксы из датасета, сами не мешаем ничего
+batch_transforms:
+  train: null
+  inference: null
+
+instance_transforms:
+  train: null
+  inference: null

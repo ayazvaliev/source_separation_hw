@@ -212,13 +212,14 @@ class RTFSNet(nn.Module):
         # mouth embs [B, T, F]
 
         # extracting complex spec
-        stft_spec = torch.stft(audio_mix,
-                               n_fft=self.n_fft,
-                               hop_length=self.hop_length,
-                               win_length=self.win_length,
-                               window=self.window,
-                               return_complex=True)
-        stft_spec = torch.stack([torch.real(stft_spec), torch.imag(stft_spec)], dim=1) # [B, 2, F, T]
+        with torch.no_grad():
+            stft_spec = torch.stft(audio_mix,
+                                n_fft=self.n_fft,
+                                hop_length=self.hop_length,
+                                win_length=self.win_length,
+                                window=self.window,
+                                return_complex=True)
+            stft_spec = torch.stack([torch.real(stft_spec), torch.imag(stft_spec)], dim=1) # [B, 2, F, T]
         
 
         # AP
