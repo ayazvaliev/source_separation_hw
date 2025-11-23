@@ -179,13 +179,12 @@ class TransformerLayer(nn.Module):
                  ffn_only
     ):
         super().__init__()
-        self.ffn_only = ffn_only
+        self.pos_encoder = PositionalEncoding(input_channel, time_dim)
         if not ffn_only:
             self.mhsa = MHSA(embed_dim=input_channel, 
                             nhead=mhsa_nhead, 
                             dropout=mhsa_dropout
                             )
-            self.pos_encoder = PositionalEncoding(input_channel, time_dim)
         else:
             self.mhsa = nn.Identity()
         self.ffn = FFN(
@@ -198,8 +197,7 @@ class TransformerLayer(nn.Module):
         )
     
     def forward(self, x: torch.Tensor):
-        if not self.ffn_only:
-            x = x + self.mhsa(self.pos_encoder(x))
+        x = x + self.mhsa(self.pos_encoder(x))
         return x + self.ffn(x)
 
 
