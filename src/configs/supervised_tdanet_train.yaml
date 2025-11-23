@@ -1,5 +1,5 @@
 defaults:
-  - model: tdanet_ga
+  - model: tdanet_ffnonly
   - writer: cometml
   - metrics: example
   - datasets: dataset

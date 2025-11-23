@@ -1,5 +1,5 @@
 defaults:
-  - model: tdanet_ga
+  - model: tdanet_ffnonly
   - writer: cometml
   - metrics: example
   - datasets: dataset
@@ -15,21 +15,17 @@ optimizer:
   cls: torch.optim.Adam
   weight_decay: 0.0
   optimizer_config:
-    lr: 1e-3
+    lr: 1e-6
 
 lr_scheduler:
-  _target_: torch.optim.lr_scheduler.ReduceLROnPlateau
-  mode: max
-  factor: 0.5
-  patience: 1 # если проставлен val_step, то фактический patience = patience * val_step
-
-scheduler_config:
-  monitor_part: val
-  monitor_metric: SI-SDR
-  set_lr: null
+  _target_: torch.optim.lr_scheduler.OneCycleLR
+  max_lr: 1e-5
+  div_factor: 10
+  pct_start: 0.35
+  final_div_factor: 100  
 
 loss_function:
-  _target_: src.loss.SNRLoss
+  _target_: src.loss.SISNRLoss
 
 trainer:
   log_step: 500
@@ -46,6 +42,6 @@ trainer:
   override: True # if True, will override the previous run with the same name
   monitor: "max val_SI-SNRi" # "off" or "max/min metric_name", i.e. our goal is to maximize/minimize metric
   save_period: 30 # checkpoint each save_period epochs in addition to the best epoch
-  early_stop: 5 # epochs for early stopping
+  early_stop: 45 # epochs for early stopping
   save_dir: "saved"
   seed: 1
