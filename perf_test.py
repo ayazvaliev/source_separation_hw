@@ -29,7 +29,7 @@ def main(config):
         device = "cuda" if torch.cuda.is_available() else "cpu"
     else:
         device = config.device
-    model = instantiate(config.model).to(device)
+    model = instantiate(config.model).to(device).eval()
     state_dict_size = get_state_dict_size(model)
 
     dummy_input = torch.randn(size=(1, 1, 32000), dtype=torch.float32, device=device, requires_grad=False) 
