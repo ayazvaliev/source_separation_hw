@@ -109,10 +109,9 @@ class MainDataset(BaseDataset):
         
         if not self.inference_mode:
             audio_path = self.data_root / top_level_dir / "audio" / name 
-            mouths_path  =  self.data_root / top_level_dir / "mouths"
         else:
             audio_path = self.data_root / top_level_dir / "audio"
-            mouths_path  =  self.data_root / top_level_dir / "mouths"
+        mouths_path  =  self.data_root / top_level_dir / "mouths"
      
         for item in tqdm((audio_path / "mix").iterdir()):
             # create dataset
