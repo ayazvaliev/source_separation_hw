@@ -5,7 +5,7 @@ from tqdm.auto import tqdm
 from pathlib import Path
 from src.metrics.tracker import MetricTracker
 from src.trainer.base_trainer import BaseTrainer
-
+from torch_audiomentations import PeakNormalization
 
 class Inferencer(BaseTrainer):
     """
@@ -69,6 +69,16 @@ class Inferencer(BaseTrainer):
 
         self.save_path = Path(save_path)
 
+
+        # normalizer
+
+        self.peak_normalizer = PeakNormalization(
+            apply_to="only_too_loud_sounds",
+            sample_rate=16_000,
+            output_type="tensor",
+            p=1.0
+        )
+
         # define metrics
         self.metrics = metrics
         if self.metrics is not None:
@@ -129,6 +139,8 @@ class Inferencer(BaseTrainer):
 
         outputs = self.model(batch["audio_mix"])
         batch.update(outputs)
+
+        batch["logits"] = self.peak_normalizer(batch["logits"])
 
         if "audio_concat" in batch and metrics is not None:
             for met in self.metrics["inference"]:
