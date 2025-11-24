@@ -16,7 +16,7 @@ def fetch_correct_path(s_dir: Path, filestem: str):
 
 
 def load_audio(path, squeeze_channel=True):
-    audio_tensor, _ = torchaudio.load(path)
+    audio_tensor, _ = torchaudio.load(str(path))
     if squeeze_channel:
         audio_tensor = audio_tensor[0, :]
     else:
@@ -68,6 +68,13 @@ def main():
             s1_gt_path = fetch_correct_path(s1_gt_dir, s1_est_path.stem)
             s2_gt_path = fetch_correct_path(s2_gt_dir, s1_est_path.stem)
             mix_path = fetch_correct_path(mix_dir, s1_est_path.name)
+
+            print(s1_est_path)
+            print(s2_est_path)
+            print(s1_gt_path)
+            print(s2_gt_path)
+            print(mix_path)
+
 
             logits = torch.stack([
                 load_audio(path)
