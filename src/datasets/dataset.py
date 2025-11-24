@@ -1,11 +1,12 @@
-import torchaudio
-from collections import OrderedDict
-from tqdm.auto import tqdm
-from pathlib import Path
 import os
-import yadisk
-import zipfile
 import subprocess
+import zipfile
+from collections import OrderedDict
+from pathlib import Path
+
+import torchaudio
+import yadisk
+from tqdm.auto import tqdm
 
 from src.datasets.base_dataset import BaseDataset
 from src.utils.io_utils import ROOT_PATH, read_json, write_json
@@ -15,13 +16,13 @@ class MainDataset(BaseDataset):
     def __init__(
         self,
         data_root,
-        name="train", 
+        name="train",
         index_dir=None,
         dataset_url=None,
         get_mouths=False,
         inference_mode=False,
-        *args, 
-        **kwargs
+        *args,
+        **kwargs,
     ):
         """
         Args:
@@ -52,18 +53,15 @@ class MainDataset(BaseDataset):
                 os.makedirs(str(index_path.parent), exist_ok=True)
                 index = self._create_index(name, index_path, dataset_url)
         else:
-            index = self._create_index(name=None,
-                                       index_path=None,
-                                       dataset_url=dataset_url,
-                                       write_to_disk=False)
+            index = self._create_index(
+                name=None, index_path=None, dataset_url=dataset_url, write_to_disk=False
+            )
 
         super().__init__(index, get_mouths, *args, **kwargs)
 
-    def _create_index(self, 
-                      name: str, 
-                      index_path: Path,
-                      dataset_url: None | str,
-                      write_to_disk=True):
+    def _create_index(
+        self, name: str, index_path: Path, dataset_url: None | str, write_to_disk=True
+    ):
         """
         Create index for the dataset. The function processes dataset metadata
         and utilizes it to get information dict for each element of
@@ -81,7 +79,7 @@ class MainDataset(BaseDataset):
 
         top_level_dir = ""
         if dataset_url is not None:
-            if dataset_url.startswith('http'):
+            if dataset_url.startswith("http"):
                 y = yadisk.YaDisk()
                 meta = y.get_public_meta(dataset_url)
                 total_size = meta.size
@@ -92,14 +90,15 @@ class MainDataset(BaseDataset):
                 archive_path = self.data_root / file_name
                 y.download_public(dataset_url, str(archive_path))
 
-                with zipfile.ZipFile(archive_path, 'r') as zip_ref:
+                with zipfile.ZipFile(archive_path, "r") as zip_ref:
                     zip_ref.extractall(self.data_root)
                     top_level_dir = set(
-                        name.split("/")[0]
-                        for name in zip_ref.namelist()
-                        if name.strip()
+                        name.split("/")[0] for name in zip_ref.namelist() if name.strip()
                     )
-                    assert len(top_level_dir) == 1 or len(top_level_dir.intersection({"audio", "mouths"})) == 2, "Wrong format for inference dir"
+                    assert (
+                        len(top_level_dir) == 1
+                        or len(top_level_dir.intersection({"audio", "mouths"})) == 2
+                    ), "Wrong format for inference dir"
                     if len(top_level_dir) == 1:
                         top_level_dir = top_level_dir.pop()
                     else:
@@ -108,14 +107,14 @@ class MainDataset(BaseDataset):
                 os.remove(archive_path)
             else:
                 raise RuntimeError("dataset path must be either URL or None")
-        
+
         if not self.inference_mode:
             top_level_dir = "dla_dataset" if dataset_url is None else top_level_dir
-            audio_path = self.data_root / top_level_dir / "audio" / name 
+            audio_path = self.data_root / top_level_dir / "audio" / name
         else:
             audio_path = self.data_root / top_level_dir / "audio"
-        mouths_path  =  self.data_root / top_level_dir / "mouths"
-     
+        mouths_path = self.data_root / top_level_dir / "mouths"
+
         for item in tqdm((audio_path / "mix").iterdir()):
             # create dataset
             item_name = item.name
@@ -126,8 +125,10 @@ class MainDataset(BaseDataset):
 
             data_instance = OrderedDict()
 
-            for name, path in zip(["audio_mix", "audio_s1", "audio_s2"], 
-                                  [audio_mix_path, audio_s1_path, audio_s2_path]):
+            for name, path in zip(
+                ["audio_mix", "audio_s1", "audio_s2"],
+                [audio_mix_path, audio_s1_path, audio_s2_path],
+            ):
                 if os.path.exists(path):
                     data_instance[name + "_path"] = path
 
@@ -135,7 +136,7 @@ class MainDataset(BaseDataset):
             # data_instance["length"] = info.num_frames / info.sample_rate
             if self.get_mouths:
                 data_instance["mouths_path"] = str(mouths_path / item_name)
-                
+
                 mouth1_name, mouth2_name = item_name[:-4].split("_")
                 mouth1_npz = str(mouths_path / mouth1_name) + ".npz"
                 mouth2_npz = str(mouths_path / mouth2_name) + ".npz"
@@ -144,36 +145,40 @@ class MainDataset(BaseDataset):
                 if not os.path.exists(mouths_emb_dir):
                     os.makedirs(mouths_emb_dir)
 
-                data_instance["mouth1_emb_path"] = self.get_mouth_embeddings(mouth_path=mouth1_npz,
-                mouth_name=mouth1_name,
-                save_dir=mouths_emb_dir)
-                data_instance["mouth2_emb_path"] = self.get_mouth_embeddings(mouth_path=mouth2_npz,
-                mouth_name=mouth2_name,
-                save_dir=mouths_emb_dir)
+                data_instance["mouth1_emb_path"] = self.get_mouth_embeddings(
+                    mouth_path=mouth1_npz, mouth_name=mouth1_name, save_dir=mouths_emb_dir
+                )
+                data_instance["mouth2_emb_path"] = self.get_mouth_embeddings(
+                    mouth_path=mouth2_npz, mouth_name=mouth2_name, save_dir=mouths_emb_dir
+                )
 
             index.append(data_instance)
 
         # write index to disk
         if write_to_disk:
             write_json(index, str(index_path))
-   
+
         return index
 
-
     def get_mouth_embeddings(self, mouth_path, mouth_name, save_dir):
-        
         save_path = str(save_dir) + "\\" + str(mouth_name) + ".npz"
-        
+
         if os.path.exists(save_path):
             return save_path
         command = [
-        "python", "Lipreading_using_Temporal_Convolutional_Networks/main.py",
-        "--modality", "video",
-        "--extract-feats",
-        "--config-path", "Lipreading_using_Temporal_Convolutional_Networks/configs/lrw_resnet18_dctcn_boundary.json",  
-        "--model-path", "Lipreading_using_Temporal_Convolutional_Networks/models/lrw_resnet18_dctcn_video_boundary.pth",
-        "--mouth-patch-path", mouth_path,
-        "--mouth-embedding-out-path", save_path
+            "python",
+            "Lipreading_using_Temporal_Convolutional_Networks/main.py",
+            "--modality",
+            "video",
+            "--extract-feats",
+            "--config-path",
+            "Lipreading_using_Temporal_Convolutional_Networks/configs/lrw_resnet18_dctcn_boundary.json",
+            "--model-path",
+            "Lipreading_using_Temporal_Convolutional_Networks/models/lrw_resnet18_dctcn_video_boundary.pth",
+            "--mouth-patch-path",
+            mouth_path,
+            "--mouth-embedding-out-path",
+            save_path,
         ]
-        result = subprocess.run(command, capture_output=True)
+        subprocess.run(command, capture_output=True)
         return save_path

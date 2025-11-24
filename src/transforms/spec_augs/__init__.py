@@ -1,9 +1,9 @@
 from src.transforms.spec_augs.cmvn import CMVN
+from src.transforms.spec_augs.complex_spec import ComplexSpec
 from src.transforms.spec_augs.mean_norm import MeanNormalization
 from src.transforms.spec_augs.melspec import LogMelSpecTransform
 from src.transforms.spec_augs.permute import Permute
 from src.transforms.spec_augs.spec import LogSpecTransform
-from src.transforms.spec_augs.complex_spec import ComplexSpec
 
 __all__ = [
     "CMVN",
@@ -11,5 +11,5 @@ __all__ = [
     "LogMelSpecTransform",
     "Permute",
     "LogSpecTransform",
-    "ComplexSpec"
+    "ComplexSpec",
 ]

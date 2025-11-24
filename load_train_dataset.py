@@ -1,9 +1,9 @@
-import yadisk
-import zipfile
 import argparse
 import os
+import zipfile
 from pathlib import Path
 
+import yadisk
 
 DATASET_URL = "https://disk.360.yandex.ru/d/9k_k6G6a03GURg"
 
@@ -16,7 +16,7 @@ def main():
     outdir = Path(args.output_dir)
     outdir.mkdir(parents=True, exist_ok=True)
 
-    y = yadisk.YaDisk() 
+    y = yadisk.YaDisk()
     meta = y.get_public_meta(DATASET_URL)
     total_size = meta.size
     file_name = meta.name
@@ -26,7 +26,7 @@ def main():
     y.download_public(DATASET_URL, zip_path)
 
     print("Extracting...")
-    with zipfile.ZipFile(zip_path, 'r') as zip_ref:
+    with zipfile.ZipFile(zip_path, "r") as zip_ref:
         zip_ref.extractall(str(outdir))
     os.remove(zip_path)
     print(f"Files extracted to: {outdir}")

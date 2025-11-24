@@ -1,16 +1,16 @@
 import warnings
 
-import torch
 import hydra
+import torch
 from hydra.utils import instantiate
+
 from src.utils.perf_utils import (
     bytes_to_readable,
-    get_state_dict_size,
-    get_peak_memory,
+    count_flops_macs,
     count_time_per_step,
-    count_flops_macs
+    get_peak_memory,
+    get_state_dict_size,
 )
-
 
 warnings.filterwarnings("ignore", category=UserWarning)
 
@@ -32,14 +32,16 @@ def main(config):
 
     model = instantiate(config.model).to(device).eval()
 
-    dummy_input = torch.randn(size=(1, 1, 32000), dtype=torch.float32, device=device, requires_grad=False) 
+    dummy_input = torch.randn(
+        size=(1, 1, 32000), dtype=torch.float32, device=device, requires_grad=False
+    )
     peak_memory = get_peak_memory(model, dummy_input, device)
     flops, macs = count_flops_macs(model, dummy_input)
     state_dict_size = get_state_dict_size(model)
 
     if config.get("compile", False):
         assert not config.get("ts_compile", False)
-        model = torch.compile(model, fullgraph=True, mode='reduce-overhead')
+        model = torch.compile(model, fullgraph=True, mode="reduce-overhead")
     elif config.get("ts_compile", False):
         model = torch.jit.trace(model, dummy_input)
 
@@ -52,11 +54,12 @@ def main(config):
         "peak memory usage": bytes_to_readable(peak_memory),
         "time_per_step": f"{time_per_step} seconds (was calculated using n_warmup={n_warmup}, n_iter={n_iter})",
         "FLOPS": flops,
-        "MACs (G / s)": macs / 1e9
+        "MACs (G / s)": macs / 1e9,
     }
 
     for name, val in res.items():
         print(f"    {name:15s}: {val}")
+
 
 if __name__ == "__main__":
     main()

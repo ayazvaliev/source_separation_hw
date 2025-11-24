@@ -1,18 +1,20 @@
-#from src.model.moduls import GLN
+# from src.model.moduls import GLN
 import torch
-from torch import nn
-from torch.nn.functional import softmax, interpolate
 from sru import SRU
+from torch import nn
+from torch.nn.functional import interpolate, softmax
+
 from src.model.A_p_block import AP_block
 
 EPS = 1e-8
+
 
 class GLN(nn.Module):
     def __init__(self, input_channel):
         super().__init__()
         self.mean = nn.Parameter(torch.ones(input_channel), requires_grad=True)
         self.var = nn.Parameter(torch.zeros(input_channel), requires_grad=True)
-    
+
     def forward(self, x: torch.Tensor):
         # x [B, F, T]
         dims = [len(x.shape) - 2, len(x.shape) - 1]
@@ -22,9 +24,7 @@ class GLN(nn.Module):
         return (self.var * x_normalized.transpose(-2, -1) + self.mean).transpose(-2, -1)
 
 
-
 class RTFSNet(nn.Module):
-
     def __init__(
         self,
         n_feats,
@@ -63,16 +63,16 @@ class RTFSNet(nn.Module):
         self.C_a = C_a
 
         self.video_proj = nn.Sequential(
-            GLN(C_v*2),
+            GLN(C_v * 2),
             nn.Conv1d(
                 in_channels=C_v * 2,
                 out_channels=C_v,
                 kernel_size=proj_kernel_video,
                 padding=proj_kernel_video // 2,
                 groups=1,
-                bias=False
+                bias=False,
             ),
-            GLN(C_v)
+            GLN(C_v),
         )
 
         self.conv_for_video_1 = nn.Conv1d(
@@ -99,18 +99,26 @@ class RTFSNet(nn.Module):
 
         # RTFS
         # Comp
-        self.comp_coef = comp_coef 
+        self.comp_coef = comp_coef
         self.compression_C = nn.Conv1d(
             in_channels=C_a, out_channels=C_a // comp_coef, kernel_size=1
         )
         self.compression_TF_1 = nn.Conv2d(
-            in_channels=C_a// comp_coef, out_channels=C_a// comp_coef, kernel_size=4, stride=2, padding=2
+            in_channels=C_a // comp_coef,
+            out_channels=C_a // comp_coef,
+            kernel_size=4,
+            stride=2,
+            padding=2,
         )
         self.compression_TF_2 = nn.Conv2d(
-            in_channels=C_a// comp_coef, out_channels=C_a// comp_coef, kernel_size=4, stride=2, padding=2
+            in_channels=C_a // comp_coef,
+            out_channels=C_a // comp_coef,
+            kernel_size=4,
+            stride=2,
+            padding=2,
         )
-        time = (time_dim//2+1)//2+1
-        freq = (n_feats//2 + 1)//2 + 1
+        time = (time_dim // 2 + 1) // 2 + 1
+        freq = (n_feats // 2 + 1) // 2 + 1
         self.adaptive_pool = nn.AdaptiveAvgPool2d((time, freq))
 
         # Freq
@@ -125,7 +133,7 @@ class RTFSNet(nn.Module):
             layer_norm=True,
         ).cuda()
 
-        # self.sru_model =nn.Linear(in_features=C_a // comp_coef * 8, out_features=2*sru_hidden) 
+        # self.sru_model =nn.Linear(in_features=C_a // comp_coef * 8, out_features=2*sru_hidden)
         self.deconv = nn.ConvTranspose2d(
             in_channels=2 * sru_hidden, out_channels=C_a // comp_coef, kernel_size=8
         )
@@ -135,7 +143,7 @@ class RTFSNet(nn.Module):
         self.layer_norm_1 = nn.LayerNorm([time - 7, freq])
 
         self.sru_model_1 = SRU(
-            input_size=C_a // comp_coef*8,
+            input_size=C_a // comp_coef * 8,
             hidden_size=sru_hidden,
             num_layers=4,
             bidirectional=True,
@@ -151,17 +159,15 @@ class RTFSNet(nn.Module):
         self.num_layers = num_layers
         self.conv_Q = nn.Conv2d(time, time, kernel_size=1)
         self.conv_K = nn.Conv2d(time, time, kernel_size=1)
-        self.conv_V = nn.Conv2d(
-            time, time, kernel_size=1
-        )
+        self.conv_V = nn.Conv2d(time, time, kernel_size=1)
         self.conv_out = nn.Conv2d(time, time, kernel_size=1)
 
         self.prelu = nn.PReLU()
 
-        self.ln_Q = nn.LayerNorm([freq , C_a // num_layers])
-        self.ln_K = nn.LayerNorm([freq , C_a // num_layers])
-        self.ln_V = nn.LayerNorm([freq , C_a // num_layers])
-        self.ln_out = nn.LayerNorm([freq , C_a // num_layers])
+        self.ln_Q = nn.LayerNorm([freq, C_a // num_layers])
+        self.ln_K = nn.LayerNorm([freq, C_a // num_layers])
+        self.ln_V = nn.LayerNorm([freq, C_a // num_layers])
+        self.ln_out = nn.LayerNorm([freq, C_a // num_layers])
 
         # Upscaling
         self.W1 = nn.Conv2d(
@@ -188,21 +194,26 @@ class RTFSNet(nn.Module):
 
         self.dec_tr_conv = nn.ConvTranspose2d(C_a, 2, kernel_size=3, stride=1, padding=1)
 
-    def forward(self, audio_mix: torch.Tensor, mouth1_emb: torch.Tensor, mouth2_emb: torch.Tensor, **batch):
+    def forward(
+        self, audio_mix: torch.Tensor, mouth1_emb: torch.Tensor, mouth2_emb: torch.Tensor, **batch
+    ):
         # mouth embs [B, T, F]
 
         # extracting complex spec
-        stft_spec = torch.stft(audio_mix,
-                               n_fft=self.n_fft,
-                               hop_length=self.hop_length,
-                               win_length=self.win_length,
-                               window=self.window,
-                               return_complex=True)
-        stft_spec = torch.stack([torch.real(stft_spec), torch.imag(stft_spec)], dim=1) # [B, 2, F, T]
-        
+        stft_spec = torch.stft(
+            audio_mix,
+            n_fft=self.n_fft,
+            hop_length=self.hop_length,
+            win_length=self.win_length,
+            window=self.window,
+            return_complex=True,
+        )
+        stft_spec = torch.stack(
+            [torch.real(stft_spec), torch.imag(stft_spec)], dim=1
+        )  # [B, 2, F, T]
 
         # AP
-        audio = self.audio_encoder(stft_spec).transpose(2, 3) # [B, C_a, T, F]
+        audio = self.audio_encoder(stft_spec).transpose(2, 3)  # [B, C_a, T, F]
 
         print(audio.shape)
         audio_time = audio.size(-2)
@@ -210,15 +221,15 @@ class RTFSNet(nn.Module):
 
         # VP
         # Конкатим и проектируем в нужную канальность [B, F=C_a, T]
-        video = self.video_proj(torch.concat([mouth1_emb, mouth2_emb], dim=-1).transpose(1, 2)) 
+        video = self.video_proj(torch.concat([mouth1_emb, mouth2_emb], dim=-1).transpose(1, 2))
         video = self.VP(video)
         print(video.shape)
         # CAF block
-        audio_val = self.conv_for_audio_1(audio) 
-        audio_val = self.glob_layer_norm_3(audio_val.transpose(2,3)).transpose(2,3)
+        audio_val = self.conv_for_audio_1(audio)
+        audio_val = self.glob_layer_norm_3(audio_val.transpose(2, 3)).transpose(2, 3)
 
         audio_gate = self.conv_for_audio_2(audio)
-        audio_gate = self.glob_layer_norm_4(audio_gate.transpose(2,3)).transpose(2,3)
+        audio_gate = self.glob_layer_norm_4(audio_gate.transpose(2, 3)).transpose(2, 3)
         audio_gate = self.relu(audio_gate)
 
         b, F, T = video.shape
@@ -243,7 +254,7 @@ class RTFSNet(nn.Module):
         RTFS_res = caf_result
         print(RTFS_res.shape)
         m = self.relu(self.conv_sss(self.prelu(RTFS_res)))
-        
+
         # SSS
         m_r = m[:, : self.C_a // 2, :, :]
         m_i = m[:, self.C_a // 2 :, :, :]
@@ -265,7 +276,7 @@ class RTFSNet(nn.Module):
         real = res[:, 0, :, :]
         imag = res[:, 1, :, :]
         print(real.shape)
-        complex_spec = torch.complex(real, imag).transpose(1,2)
+        complex_spec = torch.complex(real, imag).transpose(1, 2)
         print(complex_spec.shape)
 
         waveform = torch.istft(
@@ -278,40 +289,38 @@ class RTFSNet(nn.Module):
         return waveform
 
     def RTFS(self, x):
-        B,C,T,F = x.shape
-        A_0 = self.compression_C(x.view(B,C,T*F)).view(B, C//self.comp_coef , T, F)
+        B, C, T, F = x.shape
+        A_0 = self.compression_C(x.view(B, C, T * F)).view(B, C // self.comp_coef, T, F)
         A_1 = self.compression_TF_1(A_0)
         A_2 = self.compression_TF_2(A_1)
-        target_sise = A_2.shape[:-2]
         x_comp = self.adaptive_pool(A_0)
         x_1 = self.adaptive_pool(A_1)
         A_g = x_comp + x_1 + A_2
-        
+
         # Freq domain
         # Reshape чтобы анфолд можно было по частотному измерению применять
         B, C_a, T, F = A_g.shape
         x_reshaped = A_g.permute(0, 2, 1, 3).contiguous()
 
-        
-        x_reshaped = x_reshaped.view(-1, C_a, 1, F )
+        x_reshaped = x_reshaped.view(-1, C_a, 1, F)
 
         unfolded = self.unfold(x_reshaped)
-        
+
         # Reshape обратно
         freq_patches = unfolded.shape[-1]
         output = unfolded.view(B, T, C_a * 8, freq_patches)
         output = output.permute(0, 2, 1, 3).contiguous()
-    
+
         x = output
         x = self.layer_norm(output)
-        B, C, T, F = x.shape    
+        B, C, T, F = x.shape
         processed_slices = []
 
         for t in range(T):
             slice_t = x[:, :, t, :]
             print(type(x), type(slice_t))
-            slice_t = slice_t.permute(2, 0, 1)    
-            #slice_t, _ = self.sru_model(slice_f)
+            slice_t = slice_t.permute(2, 0, 1)
+            # slice_t, _ = self.sru_model(slice_f)
             slice_t, _ = self.sru_model(slice_t)
 
             slice_t = slice_t.permute(1, 2, 0)
@@ -319,7 +328,6 @@ class RTFSNet(nn.Module):
 
         x = torch.stack(processed_slices, dim=2)
 
-        
         T_target = A_g.shape[-2]
         x_freq = self.deconv(x)[:, :, :T_target, :] + A_g
 
@@ -332,7 +340,6 @@ class RTFSNet(nn.Module):
         T = unfolded.shape[-1]
         x_reshaped = unfolded.view(B, F, C_a * 8, T)
         output = x_reshaped.permute(0, 2, 3, 1).contiguous()
-    
 
         output = self.layer_norm_1(output)
 
@@ -341,10 +348,10 @@ class RTFSNet(nn.Module):
         processed_slices = []
 
         for f in range(F):
-            slice_f = output[:, :, :, f]          
-            slice_f = slice_f.permute(2, 0, 1)    
-            #slice_f, _ = self.sru_model(slice_f)
-            slice_f,_ = self.sru_model_1(slice_f)
+            slice_f = output[:, :, :, f]
+            slice_f = slice_f.permute(2, 0, 1)
+            # slice_f, _ = self.sru_model(slice_f)
+            slice_f, _ = self.sru_model_1(slice_f)
 
             slice_f = slice_f.permute(1, 2, 0)
             processed_slices.append(slice_f)
@@ -352,17 +359,17 @@ class RTFSNet(nn.Module):
         x = torch.stack(processed_slices, dim=3)
 
         x_time = self.deconv_1(x)
-        R_t_ddd = x_time[:,:,:, :A_g.shape[3]] + x_freq
+        R_t_ddd = x_time[:, :, :, : A_g.shape[3]] + x_freq
         A_g_hatch = self.fn_Self_attention(R_t_ddd) + R_t_ddd
 
         # Upscale
         A_0_hatch = self.I(A_0, A_g_hatch)
         A_1_hatch = self.I(A_1, A_g_hatch)
         A_0_hatch_hatch = self.I(A_0_hatch, A_1_hatch) + A_0
-    
+
         return self.conv_ups(A_0_hatch_hatch)
 
-    def I(self, m, n):
+    def I(self, m, n):  # noqa
         interpol_shapes = m.shape[-2:]
 
         result = interpolate(self.sigmoid_m(self.W1(n)), interpol_shapes) * self.W2(
@@ -376,19 +383,19 @@ class RTFSNet(nn.Module):
         x_new = x.permute(0, 2, 3, 1).contiguous()
         Q = self.conv_Q(x_new)
         K = self.conv_K(x_new)
-        V = self.conv_V(x_new)  
+        V = self.conv_V(x_new)
         Q = self.prelu(Q)
         K = self.prelu(K)
         V = self.prelu(V)
         Q = self.ln_Q(Q)
         K = self.ln_K(K)
         V = self.ln_V(V)
-        V = V.view(B_x, T_x, F_x, self.num_layers, C_x//self.num_layers)
+        V = V.view(B_x, T_x, F_x, self.num_layers, C_x // self.num_layers)
         B, T, F, E = Q.shape
         Q = Q.contiguous().view(B, T, F * E)
         K = K.contiguous().view(B, T, F * E)
         K = K.transpose(1, 2)
-        Att_mat = softmax(Q @ K / torch.sqrt(torch.tensor(F * E)), dim = -1)
+        Att_mat = softmax(Q @ K / torch.sqrt(torch.tensor(F * E)), dim=-1)
         Att_layers = Att_mat.unsqueeze(1)
         Att_layers = Att_layers.repeat(1, self.num_layers, 1, 1)
 
@@ -420,4 +427,3 @@ class RTFSNet(nn.Module):
         result_info = result_info + f"\nTrainable parameters: {trainable_parameters}"
 
         return result_info
-

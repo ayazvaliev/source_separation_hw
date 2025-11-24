@@ -18,6 +18,7 @@ def get_optimizer_grouped_parameters(model, weight_decay=1e-2):
         {"params": no_decay_params, "weight_decay": 0.0},
     ]
 
+
 def has_param(func, param_name):
     sig = inspect.signature(func)
     return param_name in sig.parameters

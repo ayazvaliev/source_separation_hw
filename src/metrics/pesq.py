@@ -1,12 +1,13 @@
-from src.metrics.base_metric import BaseMetric
-from asteroid.metrics import get_metrics
 import torch
+from asteroid.metrics import get_metrics
+
+from src.metrics.base_metric import BaseMetric
 
 
 class PESQ(BaseMetric):
     def __init__(self, sample_rate, name=None):
-            super().__init__(name)
-            self.sample_rate = sample_rate
+        super().__init__(name)
+        self.sample_rate = sample_rate
 
     def __call__(self, audio_mix, audio_concat, logits, **batch):
         batch_size = audio_mix.size(0)
@@ -16,13 +17,15 @@ class PESQ(BaseMetric):
         accum = 0
 
         for mix, clean, log in zip(audio_mix, target_audio, logits):
-            metrices = get_metrics(mix=mix,
-                                   clean=clean,
-                                   estimate=log,
-                                   sample_rate=self.sample_rate,
-                                   compute_permutation=True,
-                                   average=True,
-                                   metrics_list=["pesq"])
-            accum += metrices['pesq'] / batch_size        
+            metrices = get_metrics(
+                mix=mix,
+                clean=clean,
+                estimate=log,
+                sample_rate=self.sample_rate,
+                compute_permutation=True,
+                average=True,
+                metrics_list=["pesq"],
+            )
+            accum += metrices["pesq"] / batch_size
 
         return accum

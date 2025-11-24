@@ -1,7 +1,6 @@
 import torch
 
 
-
 def gather_by_perm(preds: torch.Tensor, perm: torch.Tensor) -> torch.Tensor:
     """
     Reorder preds [B, S, T] according to perm [B, S], so that the j-th

@@ -146,7 +146,7 @@ class BaseTrainer:
                 raise NotImplementedError()
         else:
             self.mixed_precision = torch.float32
-        
+
         self.grad_scaler = torch.amp.GradScaler(
             self.device, enabled=self.mixed_precision is not torch.float32
         )
@@ -181,9 +181,7 @@ class BaseTrainer:
         self.optimizer = optimizer_cls(
             grouped_trainable_params, **self.project_config["optimizer"]["optimizer_config"]
         )
-        total_steps = (
-            ceil(self.epoch_len / self.iters_to_accumulate) * self.cfg_trainer.n_epochs
-        )
+        total_steps = ceil(self.epoch_len / self.iters_to_accumulate) * self.cfg_trainer.n_epochs
         lr_scheduler_cls = get_class(self.config.lr_scheduler._target_)
         if has_param(lr_scheduler_cls, "total_steps"):
             self.lr_scheduler = instantiate(
@@ -192,22 +190,22 @@ class BaseTrainer:
                 total_steps=total_steps,
             )
         else:
-            self.lr_scheduler = instantiate(
-                self.config.lr_scheduler,
-                optimizer=self.optimizer
-            )
+            self.lr_scheduler = instantiate(self.config.lr_scheduler, optimizer=self.optimizer)
         if optimizer_sd is not None:
             self.optimizer.load_state_dict(optimizer_sd)
         if lr_scheduler_sd is not None:
             self.lr_scheduler.load_state_dict(lr_scheduler_sd)
-        
-        if self.scheduler_config is not None and self.scheduler_config.get('set_lr', None) is not None:
+
+        if (
+            self.scheduler_config is not None
+            and self.scheduler_config.get("set_lr", None) is not None
+        ):
             new_lr = self.scheduler_config.set_lr
             for pg in self.optimizer.param_groups:
-                pg['lr'] = new_lr
-            if hasattr(self.lr_scheduler, 'base_lrs'):
+                pg["lr"] = new_lr
+            if hasattr(self.lr_scheduler, "base_lrs"):
                 self.lr_scheduler.base_lrs = [new_lr for _ in self.lr_scheduler.base_lrs]
-            if hasattr(self.lr_scheduler, '_last_lr'):
+            if hasattr(self.lr_scheduler, "_last_lr"):
                 self.lr_scheduler._last_lr = [new_lr for _ in self.lr_scheduler._last_lr]
 
     def train(self):
@@ -310,9 +308,7 @@ class BaseTrainer:
                         epoch, self._progress(batch_idx), batch["loss"].item()
                     )
                 )
-                self.logger.debug(
-                    f"Current LR: {last_lr}"
-                )
+                self.logger.debug(f"Current LR: {last_lr}")
                 self._check_model_for_nans()
                 # we don't want to reset train metrics at the start of every epoch
                 # because we are interested in recent train metrics
@@ -463,26 +459,32 @@ class BaseTrainer:
         transforms = self.batch_transforms.get(transform_type)
         if transforms is None:
             if "audio_s1" in batch and "audio_s2" in batch:
-                batch["audio_concat"] = torch.concat([batch["audio_s1"], batch["audio_s2"]], dim=1).to(self.device)
+                batch["audio_concat"] = torch.concat(
+                    [batch["audio_s1"], batch["audio_s2"]], dim=1
+                ).to(self.device)
 
             return batch
-        
+
         used_transforms = set()
         for transform_name in transforms.keys():
             if not transform_name.startswith("get_"):
                 if transform_name in batch:
                     batch[transform_name] = transforms[transform_name](batch[transform_name])
                     used_transforms.add(transform_name)
-    
+
         if "get_mix" in transforms:
-            batch["audio_mix"], batch["audio_s1"], batch["audio_s2"] = transforms["get_mix"](**batch)
+            batch["audio_mix"], batch["audio_s1"], batch["audio_s2"] = transforms["get_mix"](
+                **batch
+            )
 
             if "audio_mix" in transforms:
                 batch["audio_mix"] = transforms["audio_mix"](batch["audio_mix"])
                 used_transforms.add("audio_mix")
 
         if "audio_s1" in batch and "audio_s2" in batch:
-            batch["audio_concat"] = torch.concat([batch["audio_s1"], batch["audio_s2"]], dim=1).to(self.device)
+            batch["audio_concat"] = torch.concat([batch["audio_s1"], batch["audio_s2"]], dim=1).to(
+                self.device
+            )
 
         if "get_spectrogram" in transforms:
             batch["spectrogram_mix"] = transforms["get_spectrogram"](batch["audio_mix"])
@@ -588,7 +590,11 @@ class BaseTrainer:
         if self.torchscript:
             model_state_dict = self.model_.state_dict()
         else:
-            model_state_dict = self.model._orig_mod.state_dict() if getattr(self.model_, "_orig_mod", None) is not None else self.model.state_dict()
+            model_state_dict = (
+                self.model._orig_mod.state_dict()
+                if getattr(self.model_, "_orig_mod", None) is not None
+                else self.model.state_dict()
+            )
         state = {
             "arch": arch,
             "epoch": epoch,
@@ -645,7 +651,7 @@ class BaseTrainer:
                 total_infs += n_infs
                 if n_nans or n_infs:
                     bad_tensors.append((key, k, t.shape, t.dtype, n_nans, n_infs))
-        
+
         return bad_tensors
 
     def _resume_checkpoint(self, resume_path):

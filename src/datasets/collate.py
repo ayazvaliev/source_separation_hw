@@ -20,12 +20,14 @@ def collate_fn(dataset_items: list[dict]):
 
     audio_batch = {
         name: torch.stack([elem[name] for elem in dataset_items])
-        for name in audio_names if name in all_keys
+        for name in audio_names
+        if name in all_keys
     }
 
     mouth_batch = {
         name: torch.stack([elem[name] for elem in dataset_items])
-        for name in mouth_names if name in all_keys
+        for name in mouth_names
+        if name in all_keys
     }
 
     result_batch = audio_batch | mouth_batch

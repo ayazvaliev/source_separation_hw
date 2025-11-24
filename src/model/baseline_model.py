@@ -1,5 +1,5 @@
-from torch import nn
 import torch
+from torch import nn
 
 
 class BaselineModel(nn.Module):
@@ -22,7 +22,7 @@ class BaselineModel(nn.Module):
             nn.Conv1d(8, 16, kernel_size=3, padding=1),
             nn.ReLU(),
             nn.Conv1d(16, 2, kernel_size=3, padding=1),
-            nn.ReLU()
+            nn.ReLU(),
         )
 
     def forward(self, audio_mix: torch.Tensor, **batch):
@@ -35,7 +35,7 @@ class BaselineModel(nn.Module):
             output (dict): output dict containing logits.
         """
         # audio_mix (N, C=1, L)
-        x = self.conv_block(audio_mix) # (N, C=2, L) 
+        x = self.conv_block(audio_mix)  # (N, C=2, L)
 
         return {"logits": x}
 
@@ -44,9 +44,7 @@ class BaselineModel(nn.Module):
         Model prints with the number of parameters.
         """
         all_parameters = sum([p.numel() for p in self.parameters()])
-        trainable_parameters = sum(
-            [p.numel() for p in self.parameters() if p.requires_grad]
-        )
+        trainable_parameters = sum([p.numel() for p in self.parameters() if p.requires_grad])
 
         result_info = super().__str__()
         result_info = result_info + f"\nAll parameters: {all_parameters}"

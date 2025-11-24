@@ -1,12 +1,10 @@
+import copy
 import logging
 import random
-import torchaudio
+
 import numpy as np
-import copy
-
-
-
 import torch
+import torchaudio
 from torch.utils.data import Dataset
 
 logger = logging.getLogger(__name__)
@@ -22,16 +20,16 @@ class BaseDataset(Dataset):
     """
 
     def __init__(
-        self, 
+        self,
         index,
         get_mouths,
-        sr, 
-        limit=None, 
-        shuffle_index=False, 
+        sr,
+        limit=None,
+        shuffle_index=False,
         instance_transforms=None,
         min_audio_length=None,
         max_audio_length=None,
-        **kwargs
+        **kwargs,
     ):
         """
         Args:
@@ -75,7 +73,8 @@ class BaseDataset(Dataset):
         data_dict.update(
             {
                 name: self.load_audio(data_dict[name + "_path"])
-                for name in audio_names if (name + "_path") in data_dict
+                for name in audio_names
+                if (name + "_path") in data_dict
             }
         )
 
@@ -89,7 +88,7 @@ class BaseDataset(Dataset):
             data_dict.update(mouth_emb_dict)
 
         data_dict = self.preprocess_data(data_dict)
-        
+
         return data_dict
 
     def __len__(self):
@@ -128,9 +127,9 @@ class BaseDataset(Dataset):
         """
         if self.instance_transforms is not None:
             for transform_name in self.instance_transforms.keys():
-                instance_data[transform_name] = self.instance_transforms[
-                    transform_name
-                ](instance_data[transform_name])
+                instance_data[transform_name] = self.instance_transforms[transform_name](
+                    instance_data[transform_name]
+                )
         return instance_data
 
     @staticmethod
@@ -158,7 +157,9 @@ class BaseDataset(Dataset):
             return index
 
         initial_size = len(index)
-        audio_length_tensor = torch.tensor([el["audio_mix_time"] for el in index], dtype=torch.int32)
+        audio_length_tensor = torch.tensor(
+            [el["audio_mix_time"] for el in index], dtype=torch.int32
+        )
         if max_audio_length is not None:
             exceeds_audio_length = audio_length_tensor >= max_audio_length
             _total = exceeds_audio_length.sum()
@@ -194,10 +195,7 @@ class BaseDataset(Dataset):
                 such as label and object path.
         """
         for entry in index:
-            assert entry != {}, (
-                "Each dataset item should include data" 
-            )
-            
+            assert entry != {}, "Each dataset item should include data"
 
     @staticmethod
     def _sort_index(index):

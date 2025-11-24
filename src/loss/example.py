@@ -12,11 +12,7 @@ class ExampleLoss(nn.Module):
         super().__init__()
         self.loss = ScaleInvariantSignalNoiseRatio()
 
-    def forward(self, 
-                audio_s1, 
-                audio_s2,
-                logits,  
-                **batch):
+    def forward(self, audio_s1, audio_s2, logits, **batch):
         """
         Loss function calculation logic.
 
@@ -38,8 +34,9 @@ class ExampleLoss(nn.Module):
         target_s1 = audio_s1.squeeze(1)
         target_s2 = audio_s2.squeeze(1)
 
-        sl_snr = - torch.max(self.loss(target_s1, logits[:, 0, :]) + self.loss(target_s2, logits[:, 1, :]),
-                             self.loss(target_s2,  logits[:, 0, :]) + self.loss(target_s1,  logits[:, 1, :])
-                    )
+        sl_snr = -torch.max(
+            self.loss(target_s1, logits[:, 0, :]) + self.loss(target_s2, logits[:, 1, :]),
+            self.loss(target_s2, logits[:, 0, :]) + self.loss(target_s1, logits[:, 1, :]),
+        )
 
         return {"loss": sl_snr}

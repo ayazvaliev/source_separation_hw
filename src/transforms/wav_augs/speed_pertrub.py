@@ -1,7 +1,9 @@
-import torch.nn as nn
-import torch
 import random
+
+import torch
+import torch.nn as nn
 import torchaudio.transforms as ta_transforms
+
 
 class SpeedPerturb(nn.Module):
     """
@@ -14,7 +16,14 @@ class SpeedPerturb(nn.Module):
         so repeated forward calls re-use kernels.
       - Ensures output has same number of frames as input by center-trim or random-pad.
     """
-    def __init__(self, sample_rate: int = 16000, min_speed: float = 0.92, max_speed: float = 1.08, p: float = 0.25):
+
+    def __init__(
+        self,
+        sample_rate: int = 16000,
+        min_speed: float = 0.92,
+        max_speed: float = 1.08,
+        p: float = 0.25,
+    ):
         super().__init__()
         assert min_speed > 0 and max_speed > 0 and min_speed <= max_speed
         self.sr = int(sample_rate)
@@ -24,13 +33,17 @@ class SpeedPerturb(nn.Module):
         # cache of resamplers: dict[(orig_sr,new_sr,device,dtype)] = (resample_to_new, resample_back)
         self._resampler_cache = {}
 
-    def _get_resamplers(self, orig_sr:int, new_sr:int, device, dtype):
+    def _get_resamplers(self, orig_sr: int, new_sr: int, device, dtype):
         key = (orig_sr, new_sr, device, str(dtype))
         if key in self._resampler_cache:
             return self._resampler_cache[key]
         # create and store
-        r1 = ta_transforms.Resample(orig_freq=orig_sr, new_freq=new_sr).to(device=device, dtype=dtype)
-        r2 = ta_transforms.Resample(orig_freq=new_sr, new_freq=orig_sr).to(device=device, dtype=dtype)
+        r1 = ta_transforms.Resample(orig_freq=orig_sr, new_freq=new_sr).to(
+            device=device, dtype=dtype
+        )
+        r2 = ta_transforms.Resample(orig_freq=new_sr, new_freq=orig_sr).to(
+            device=device, dtype=dtype
+        )
         self._resampler_cache[key] = (r1, r2)
         return r1, r2
 
@@ -44,7 +57,9 @@ class SpeedPerturb(nn.Module):
             return batch
 
         if batch.dim() != 3:
-            raise ValueError("SpeedPerturb expects input shape (B, C, T). Got: {}".format(batch.shape))
+            raise ValueError(
+                "SpeedPerturb expects input shape (B, C, T). Got: {}".format(batch.shape)
+            )
 
         B, C, T = batch.shape
         device = batch.device
@@ -66,8 +81,8 @@ class SpeedPerturb(nn.Module):
                 continue
             r_to_new, r_back = self._get_resamplers(self.sr, new_sr, device, dtype)
             # resample to new_sr then back
-            y = r_to_new(x)    # shape (C, T_new)
-            y = r_back(y)      # shape (C, T') approximately T
+            y = r_to_new(x)  # shape (C, T_new)
+            y = r_back(y)  # shape (C, T') approximately T
             # ensure length = T by trim/pad (centered trim, random pad placement)
             t_out = y.shape[-1]
             if t_out == T:
@@ -75,7 +90,7 @@ class SpeedPerturb(nn.Module):
             elif t_out > T:
                 # center-crop to T to avoid bias
                 start = (t_out - T) // 2
-                out[i] = y[..., start:start+T]
+                out[i] = y[..., start : start + T]
             else:
                 # pad; random left padding to distribute padding locations
                 pad = T - t_out

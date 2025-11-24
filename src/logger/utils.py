@@ -41,6 +41,7 @@ def plot_images(imgs, config):
 
     return image
 
+
 def plot_spectrogram(spectrogram, name=None, save_on_disk=False):
     """
     Plot spectrogram
@@ -53,7 +54,7 @@ def plot_spectrogram(spectrogram, name=None, save_on_disk=False):
     """
     plt.figure(figsize=(20, 5))
     mesh = plt.pcolormesh(spectrogram, shading="auto", cmap="viridis")
-    cbar = plt.colorbar(mesh)
+    plt.colorbar(mesh)
     plt.title(name)
 
     if save_on_disk:

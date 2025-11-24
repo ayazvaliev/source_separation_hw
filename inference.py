@@ -1,4 +1,5 @@
 import warnings
+from pathlib import Path
 
 import hydra
 import torch
@@ -8,7 +9,6 @@ from src.datasets.data_utils import get_dataloaders
 from src.trainer import Inferencer
 from src.utils.init_utils import set_random_seed
 from src.utils.io_utils import ROOT_PATH
-from pathlib import Path
 
 warnings.filterwarnings("ignore", category=UserWarning)
 
@@ -40,13 +40,13 @@ def main(config):
 
     if config.inferencer.get("compile", False):
         assert not config.trainer.get("ts_compile", False)
-        model = torch.compile(model, fullgraph=True, mode='reduce-overhead')
+        model = torch.compile(model, fullgraph=True, mode="reduce-overhead")
 
     # get metrics
     metrics = instantiate(config.metrics)
 
     # save_path for model predictions
-    save_path = Path(config.inferencer['save_path'] or ROOT_PATH / "data" / "saved")
+    save_path = Path(config.inferencer["save_path"] or ROOT_PATH / "data" / "saved")
     save_path.mkdir(exist_ok=True, parents=True)
 
     inferencer = Inferencer(

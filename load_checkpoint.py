@@ -1,8 +1,8 @@
 import argparse
 import zipfile
 from pathlib import Path
-import gdown
 
+import gdown
 
 CKPT_URL = "https://drive.google.com/file/d/1-ts2Oe_f4zAEuiEyIsAq2Gn9VTlt8S9T/view?usp=sharing"
 

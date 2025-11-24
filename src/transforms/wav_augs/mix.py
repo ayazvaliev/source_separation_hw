@@ -5,6 +5,7 @@ import torch.nn as nn
 def calculate_rms(samples: torch.Tensor):
     return samples.square().mean(dim=-1).sqrt()
 
+
 def rms_normalize(samples: torch.Tensor):
     rms = samples.square().mean(dim=-1, keepdim=True).sqrt()
     return samples / (rms + 1e-8)
@@ -21,20 +22,15 @@ class Mix(nn.Module):
                 self.min_snr_in_db,
                 dtype=torch.float32,
             ),
-            high=torch.tensor(
-                self.max_snr_in_db,
-                dtype=torch.float32
-            ),
-            validate_args=True
+            high=torch.tensor(self.max_snr_in_db, dtype=torch.float32),
+            validate_args=True,
         )
 
     def forward(self, audio_s1: torch.Tensor, audio_s2: torch.Tensor, **batch):
         batch_size = audio_s1.size(0)
         if self.shuffle_batch:
             audio_s2 = audio_s2[torch.randperm(batch_size, device=audio_s2.device)]
-        snr = self.snr_distribution.sample(
-            sample_shape=(batch_size,)
-        ).to(audio_s1.device)
+        snr = self.snr_distribution.sample(sample_shape=(batch_size,)).to(audio_s1.device)
 
         background_samples = rms_normalize(audio_s2)
         background_rms = calculate_rms(audio_s1) / (10 ** (snr.unsqueeze(-1) / 20))

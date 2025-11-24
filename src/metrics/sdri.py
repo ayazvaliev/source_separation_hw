@@ -1,16 +1,17 @@
-from src.metrics.base_metric import BaseMetric
 import torch
 from torchmetrics.functional.audio import (
-     permutation_invariant_training,
-     scale_invariant_signal_distortion_ratio,
-     signal_distortion_ratio
+    permutation_invariant_training,
+    scale_invariant_signal_distortion_ratio,
+    signal_distortion_ratio,
 )
+
+from src.metrics.base_metric import BaseMetric
 from src.metrics.metric_utils import gather_by_perm
 
 
 class SDRi(BaseMetric):
     def __init__(self, name=None):
-            super().__init__(name)
+        super().__init__(name)
 
     def __call__(self, audio_mix, audio_concat, logits, **batch):
         B, S, T = logits.shape
@@ -18,10 +19,11 @@ class SDRi(BaseMetric):
         target_audio = audio_concat
 
         _, best_permut = permutation_invariant_training(
-             preds=logits, target=target_audio,
-             metric_func=scale_invariant_signal_distortion_ratio,
-             eval_func='max',
-             zero_mean=True
+            preds=logits,
+            target=target_audio,
+            metric_func=scale_invariant_signal_distortion_ratio,
+            eval_func="max",
+            zero_mean=True,
         )
         logits = gather_by_perm(logits, best_permut)
 

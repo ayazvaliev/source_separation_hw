@@ -4,9 +4,9 @@ from pathlib import Path
 import pandas as pd
 import torch
 
+from src.logger.utils import plot_spectrogram
 from src.metrics.tracker import MetricTracker
 from src.trainer.base_trainer import BaseTrainer
-from src.logger.utils import plot_spectrogram
 
 
 class Trainer(BaseTrainer):
@@ -90,11 +90,13 @@ class Trainer(BaseTrainer):
 
     def log_spectrogram(self, **batch):
         spectrogram_keys = [k for k in batch.keys() if k.startswith("spectrogram")]
-        spectrograms_for_plot = [
-            batch[k][0].squeeze(0).detach().cpu() for k in spectrogram_keys
+        spectrograms_for_plot = [batch[k][0].squeeze(0).detach().cpu() for k in spectrogram_keys]
+        images = [
+            plot_spectrogram(spectrogram, desc)
+            for spectrogram, desc in zip(
+                spectrograms_for_plot, [k.split("_")[-1] for k in spectrogram_keys]
+            )
         ]
-        images = [plot_spectrogram(spectrogram, desc) for spectrogram, desc in 
-                  zip(spectrograms_for_plot, [k.split('_')[-1] for k in spectrogram_keys])]
         if len(images) > 0:
             self.writer.add_images("spectrograms", images)
 

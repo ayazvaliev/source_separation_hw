@@ -1,11 +1,13 @@
+from pathlib import Path
+
 import torch
 import torchaudio
+from torch_audiomentations import PeakNormalization
 from tqdm.auto import tqdm
 
-from pathlib import Path
 from src.metrics.tracker import MetricTracker
 from src.trainer.base_trainer import BaseTrainer
-from torch_audiomentations import PeakNormalization
+
 
 class Inferencer(BaseTrainer):
     """
@@ -69,14 +71,10 @@ class Inferencer(BaseTrainer):
 
         self.save_path = Path(save_path)
 
-
         # normalizer
 
         self.peak_normalizer = PeakNormalization(
-            apply_to="only_too_loud_sounds",
-            sample_rate=16_000,
-            output_type="tensor",
-            p=1.0
+            apply_to="only_too_loud_sounds", sample_rate=16_000, output_type="tensor", p=1.0
         )
 
         # define metrics
@@ -147,15 +145,17 @@ class Inferencer(BaseTrainer):
                 metrics.update(met.name, met(**batch))
 
         if part_save_path is not None:
-            batch_size = batch['logits'].size(0)
+            batch_size = batch["logits"].size(0)
             for i in range(batch_size):
-                audio_mix_name = Path(batch['audio_mix_path'][i]).name
-                for speaker_id, speaker_dir in enumerate(['s1', 's2']):
-                    save_name = part_save_path / speaker_dir / audio_mix_name 
-                    torchaudio.save(save_name,
-                                    batch['logits'][i, speaker_id:speaker_id+1].cpu(),
-                                    sample_rate=16_000,
-                                    format=audio_mix_name.split('.')[-1])
+                audio_mix_name = Path(batch["audio_mix_path"][i]).name
+                for speaker_id, speaker_dir in enumerate(["s1", "s2"]):
+                    save_name = part_save_path / speaker_dir / audio_mix_name
+                    torchaudio.save(
+                        save_name,
+                        batch["logits"][i, speaker_id : speaker_id + 1].cpu(),
+                        sample_rate=16_000,
+                        format=audio_mix_name.split(".")[-1],
+                    )
 
         return batch
 
@@ -195,7 +195,7 @@ class Inferencer(BaseTrainer):
                     batch_idx=batch_idx,
                     batch=batch,
                     metrics=self.evaluation_metrics,
-                    part_save_path=part_save_path
+                    part_save_path=part_save_path,
                 )
 
         ret_none = self.evaluation_metrics is None or self.evaluation_metrics.empty
