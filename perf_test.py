@@ -55,7 +55,7 @@ def main(config):
         "MACs": macs
     }
 
-    for name, val in res:
+    for name, val in res.items():
         print(f"    {name:15s}: {val}")
 
 if __name__ == "__main__":
