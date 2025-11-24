@@ -34,6 +34,8 @@ def main():
     parser.add_argument('--batch_size', type=int, default=50, help="Batch size for evalulation")
     args = parser.parse_args()
 
+    device = "cuda" if torch.cuda.is_available() else "cpu"
+
     s1_est_dir = Path(args.predictions_dir) / "s1"
     s2_est_dir = Path(args.predictions_dir) / "s2"
 
@@ -85,7 +87,7 @@ def main():
 
             if len(data_dicts) == args.batch_size:
                 batch = {
-                    name: torch.stack([elem[name] for elem in data_dicts], dim=0)
+                    name: torch.stack([elem[name] for elem in data_dicts], dim=0).to(device)
                     for name in ["logits", "audio_concat", "audio_mix"]
                 }
                 for met in metrics:
