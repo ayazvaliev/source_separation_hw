@@ -42,24 +42,21 @@ def main():
 
     mix_dir = Path(args.mix_dir)
 
-    metrics = {
-        "SI-SNRi": SISNRi,
-        "SDRi": SDRi
-    }
+    metrics = [
+        SISNRi("SI-SNRi"),
+        SDRi("SDRi")
+    ]
+
     if args.pesq:
-        metrics.update(
-            {
-                "PESQ": PESQ
-            }
+        metrics.append(
+            PESQ("PESQ")
         )
     if args.stoi:
-        metrics.update(
-            {
-                "STOI": STOI
-            }
+        metrics.append(
+            STOI("STOI")
         )
 
-    metrics_tracker = MetricTracker(*metrics.keys())
+    metrics_tracker = MetricTracker(*[met.name for name in metrics])
     data_dicts = []
 
     for format in formats:
@@ -91,8 +88,8 @@ def main():
                     name: torch.stack([elem[name] for elem in data_dicts], dim=0)
                     for name in ["logits", "audio_concat", "audio_mix"]
                 }
-                for k, met in metrics.items():
-                    metrics_tracker.update(k, met(**batch))
+                for met in metrics:
+                    metrics_tracker.update(met.name, met(**batch))
                 data_dicts = []
     
     if len(data_dicts) > 0:
@@ -100,8 +97,8 @@ def main():
             name: torch.stack([elem[name] for elem in data_dicts], dim=0)
             for name in ["logits", "audio_concat", "audio_mix"]
         }
-        for k, met in metrics:
-            metrics_tracker.update(k, met(**batch))
+        for met in metrics:
+            metrics_tracker.update(met.name, met(**batch))
     
     for name, val in metrics_tracker.result().items():
         print(f"    {name:15s}: {val}")
