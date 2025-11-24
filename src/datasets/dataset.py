@@ -41,7 +41,7 @@ class MainDataset(BaseDataset):
                 index_dir = self.data_root
             else:
                 index_dir = Path(index_dir)
-            index_path = index_path / name / "index.json"
+            index_path = index_dir / name / "index.json"
 
             # each nested dataset class must have an index field that
             # contains list of dicts. Each dict contains information about
