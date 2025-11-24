@@ -50,7 +50,7 @@ def main(config):
     res = {
         "state dict size": bytes_to_readable(state_dict_size),
         "peak memory usage": bytes_to_readable(peak_memory),
-        "time_per_step": f"{time_per_step} seconds (was calculaed using n_warmup={n_warmup}, n_iter={n_iter})",
+        "time_per_step": f"{time_per_step} seconds (was calculated using n_warmup={n_warmup}, n_iter={n_iter})",
         "FLOPS": flops,
         "MACs (G / s)": macs / 1e9
     }
