@@ -103,14 +103,14 @@ class MainDataset(BaseDataset):
                     if len(top_level_dir) == 1:
                         top_level_dir = top_level_dir.pop()
                     else:
-                        top_level_dir = None
+                        top_level_dir = ""
 
                 os.remove(archive_path)
             else:
                 raise RuntimeError("dataset path must be either URL or None")
         
         if not self.inference_mode:
-            top_level_dir = "dla_dataset"
+            top_level_dir = "dla_dataset" if dataset_url is None else top_level_dir
             audio_path = self.data_root / top_level_dir / "audio" / name 
         else:
             audio_path = self.data_root / top_level_dir / "audio"
