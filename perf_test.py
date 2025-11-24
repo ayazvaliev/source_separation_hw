@@ -51,7 +51,7 @@ def main(config):
         "state dict size": bytes_to_readable(state_dict_size),
         "peak memory usage": bytes_to_readable(peak_memory),
         "time_per_step": f"{time_per_step} seconds (was calculaed using n_warmup={n_warmup}, n_iter={n_iter})",
-        "FLOPS": flops,
+        "flops": flops,
         "MACs": macs
     }
 

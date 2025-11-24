@@ -1,7 +1,6 @@
 import time
 import torch
 import torch.nn as nn
-from fvcore.nn import FlopCountAnalysis
 from thop import profile
 
 
@@ -51,8 +50,6 @@ def count_time_per_step(model, dummy_input, device, n_warmup=10, n_iter=30):
 def count_flops_macs(model, dummy_input):
     model.eval()
     with torch.inference_mode():
-        fca = FlopCountAnalysis(model, dummy_input)
-        flops = fca.total()
         macs, _ = profile(model, inputs=(dummy_input,), verbose=False)
         
-    return flops, macs
+    return 2 * macs, macs

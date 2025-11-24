@@ -21,7 +21,6 @@ pesq
 pystoi
 museval
 sru
-fvcore 
 thop
 
 black
