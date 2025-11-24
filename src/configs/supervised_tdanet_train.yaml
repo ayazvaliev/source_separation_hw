@@ -34,11 +34,11 @@ loss_function:
 trainer:
   log_step: 500
   val_step: 15
-  n_epochs: 150
+  n_epochs: 165
   gradient_accumulation: null
   max_grad_norm: 5
   mixed_precision: float32
-  compile: True
+  compile: False
   ts_compile: False # врубает торчскриптовский jit. Не работает с автокастом >:(
   device_tensors: ["audio_s1", "audio_s2", "audio_mix"] # which tensors should be on device (ex. GPU)
   resume_from: null # null or path to the checkpoint dir with *.pth and config.yaml
