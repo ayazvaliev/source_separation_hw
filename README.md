@@ -1,4 +1,4 @@
-# Automatic Speech Recognition (ASR) with PyTorch
+# Audio Source Separation Model with PyTorch
 
 <p align="center">
   <a href="#installation">Installation</a> •
@@ -88,3 +88,4 @@ Report can be found [here](https://api.wandb.ai/links/ayazbebrovich-hse-fcs/waat
 ## License
 
 [![License](https://img.shields.io/badge/license-MIT-blue.svg)](/LICENSE)
+
