@@ -32,7 +32,7 @@ def main(config):
     model = instantiate(config.model).to(device)
     state_dict_size = get_state_dict_size(model)
 
-    dummy_input = torch.randn(size=(1, 1, 32000), dtype=torch.float32, requires_grad=False) 
+    dummy_input = torch.randn(size=(1, 1, 32000), dtype=torch.float32, device=device, requires_grad=False) 
 
     if config.get("compile", False):
         assert not config.get("ts_compile", False)
