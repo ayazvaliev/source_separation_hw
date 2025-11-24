@@ -75,7 +75,7 @@ class BaseDataset(Dataset):
         data_dict.update(
             {
                 name: self.load_audio(data_dict[name + "_path"])
-                for name in audio_names
+                for name in audio_names if (name + "_path") in data_dict
             }
         )
 
