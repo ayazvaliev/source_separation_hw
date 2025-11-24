@@ -56,7 +56,7 @@ def main():
             STOI("STOI")
         )
 
-    metrics_tracker = MetricTracker(*[met.name for name in metrics])
+    metrics_tracker = MetricTracker(*[met.name for met in metrics])
     data_dicts = []
 
     for format in formats:
