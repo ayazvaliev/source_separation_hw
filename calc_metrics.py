@@ -91,7 +91,7 @@ def main():
                     name: torch.stack([elem[name] for elem in data_dicts], dim=0)
                     for name in ["logits", "audio_concat", "audio_mix"]
                 }
-                for k, met in metrics:
+                for k, met in metrics.items():
                     metrics_tracker.update(k, met(**batch))
                 data_dicts = []
     
