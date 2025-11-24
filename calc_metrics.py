@@ -13,6 +13,7 @@ def fetch_correct_path(s_dir: Path, filestem: str):
     for format in formats:
         if (s_dir / f"{filestem}.{format}").exists():
             return s_dir / f"{filestem}.{format}"
+    assert False, f"File not found: {s_dir / filestem}"
 
 
 def load_audio(path, squeeze_channel=True):
