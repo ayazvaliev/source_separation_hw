@@ -67,14 +67,7 @@ def main():
             s2_est_path = fetch_correct_path(s2_est_dir, s1_est_path.stem)
             s1_gt_path = fetch_correct_path(s1_gt_dir, s1_est_path.stem)
             s2_gt_path = fetch_correct_path(s2_gt_dir, s1_est_path.stem)
-            mix_path = fetch_correct_path(mix_dir, s1_est_path.name)
-
-            print(s1_est_path)
-            print(s2_est_path)
-            print(s1_gt_path)
-            print(s2_gt_path)
-            print(mix_path)
-
+            mix_path = fetch_correct_path(mix_dir, s1_est_path.stem)
 
             logits = torch.stack([
                 load_audio(path)
