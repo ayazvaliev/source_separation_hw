@@ -110,6 +110,7 @@ class MainDataset(BaseDataset):
                 raise RuntimeError("dataset path must be either URL or None")
         
         if not self.inference_mode:
+            top_level_dir = "dla_dataset"
             audio_path = self.data_root / top_level_dir / "audio" / name 
         else:
             audio_path = self.data_root / top_level_dir / "audio"
