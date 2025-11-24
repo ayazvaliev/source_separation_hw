@@ -57,3 +57,6 @@ def main(config):
 
     for name, val in res:
         print(f"    {name:15s}: {val}")
+
+if __name__ == "__main__":
+    main()
