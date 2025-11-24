@@ -1,4 +1,4 @@
-# Automatic Speech Recognition (ASR) with PyTorch
+# Audio Source Separation Model with PyTorch
 
 <p align="center">
   <a href="#installation">Installation</a> •
@@ -57,9 +57,9 @@ Follow these steps to install the project:
 ```bash
 python load_train_dataset.py --output YOUR_SAVE_DIR
 ```
-2. In order to log training process we used [CometML](https://www.comet.com/site/) logger. Set up `COMET_API_TOKEN` env with your CometML token:
+2. In order to log training process we used [CometML](https://www.comet.com/site/) logger. Set up `COMET_API_KEY` env with your CometML token:
 ```bash
-export COMET_API_TOKEN="<YOUR COMETML API TOKEN>"
+export COMET_API_KEY="<YOUR COMETML API KEY>"
 ```
 3. Run pre-training of the model:
 ```bash
@@ -88,3 +88,5 @@ Report can be found [here](https://api.wandb.ai/links/ayazbebrovich-hse-fcs/waat
 ## License
 
 [![License](https://img.shields.io/badge/license-MIT-blue.svg)](/LICENSE)
+
+
