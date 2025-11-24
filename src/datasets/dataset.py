@@ -91,7 +91,7 @@ class MainDataset(BaseDataset):
                 with zipfile.ZipFile(archive_path, 'r') as zip_ref:
                     zip_ref.extractall(self.data_root)
                     top_level_dir = set(
-                        name.split(".")[0]
+                        name.split("/")[0]
                         for name in zip_ref.namelist()
                         if name.strip()
                     )
