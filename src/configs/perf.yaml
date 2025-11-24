@@ -1,0 +1,9 @@
+defaults:
+  - model: tdanet_ffnonly_perftest
+  - _self_
+
+device: cuda
+ts_compile: true
+
+time_per_step_n_warmup: 10
+time_per_step_n_iter: 30
