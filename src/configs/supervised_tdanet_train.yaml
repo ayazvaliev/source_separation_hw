@@ -46,6 +46,6 @@ trainer:
   override: True # if True, will override the previous run with the same name
   monitor: "max val_SI-SNRi" # "off" or "max/min metric_name", i.e. our goal is to maximize/minimize metric
   save_period: 30 # checkpoint each save_period epochs in addition to the best epoch
-  early_stop: 45 # epochs for early stopping
+  early_stop: 15 # epochs for early stopping
   save_dir: "saved"
   seed: 1
