@@ -62,13 +62,13 @@ def main(config):
 
     logs = inferencer.run_inference()
 
-    if logs is not None:
-        for part in logs.keys():
-            for key, value in logs[part].items():
-                full_key = part + "_" + key
-                print(f"    {full_key:15s}: {value}")
-    else:
-        print("No metrics were calculated")
+    for part in logs.keys():
+        if logs[part] is None:
+            print(f"{part}: No metrics were calculated")
+            continue
+        for key, value in logs[part].items():
+            full_key = part + "_" + key
+            print(f"    {full_key:15s}: {value}")
 
 
 if __name__ == "__main__":
