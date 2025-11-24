@@ -32,6 +32,8 @@ class MainDataset(BaseDataset):
         """
         self.get_mouths = get_mouths
         self.data_root = Path(data_root)
+        self.data_root.mkdir(parents=True, exist_ok=True)
+
         self.inference_mode = inference_mode
 
         if not inference_mode:
