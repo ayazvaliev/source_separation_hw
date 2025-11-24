@@ -123,13 +123,15 @@ class TDANet(nn.Module):
                  use_la,
                  use_ga,
                  num_blocks,
+                 return_dict=True,
                  **kwargs
                  ):
         super().__init__()
 
+        self.return_dict = return_dict
+
         self.num_blocks = num_blocks
         self.num_speakers = num_speakers
-
         self.latent_dim = stem_kernel_size // 2 + 1
         self.encoder_stem =  nn.Conv1d(in_channels=1,
                       out_channels=self.latent_dim,
@@ -237,7 +239,8 @@ class TDANet(nn.Module):
             x = x_res + self.inverse_proj(x)
 
         applied_masks = (self.mask_gen(x).view(batch_size, self.latent_dim, self.num_speakers, -1) * encoded_audio.unsqueeze(2)).view(batch_size, self.latent_dim * self.num_speakers, -1)
-        return {"logits": self.reconstruction_conv(applied_masks)}
+        logits = self.reconstruction_conv(applied_masks)
+        return {"logits": self.reconstruction_conv(applied_masks)} if self.return_dict else logits
     
 
     def __str__(self):

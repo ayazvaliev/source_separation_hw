@@ -1,5 +1,5 @@
 defaults:
-  - model: tdanet_ffnonly
+  - model: tdanet_ffnonly_perftest
   - _self_
 
 device: cuda
