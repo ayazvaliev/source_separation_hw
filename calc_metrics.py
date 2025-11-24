@@ -74,7 +74,7 @@ def main():
                 load_audio(path)
                 for path in [s1_gt_path, s2_gt_path]
             ],dim=0)
-            audio_mix = load_audio(mix_path, squeeze_channel=False).unsqueeze(0)
+            audio_mix = load_audio(mix_path, squeeze_channel=False)
             data_dicts.append(
                 {
                     "logits": logits,
