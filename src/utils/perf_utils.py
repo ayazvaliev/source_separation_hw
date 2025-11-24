@@ -50,7 +50,7 @@ def count_time_per_step(model, dummy_input, device, n_warmup=10, n_iter=30):
 def count_flops_macs(model, dummy_input):
     model.eval()
     with torch.inference_mode():
-        macs, _ = get_model_complexity_info(model, dummy_input.shape[1:],
+        macs, _ = get_model_complexity_info(model, tuple(dummy_input.shape[1:]),
                                                  as_strings=False,
                                                  print_per_layer_stat=False)
         
