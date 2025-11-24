@@ -95,7 +95,6 @@ class MainDataset(BaseDataset):
                         for name in zip_ref.namelist()
                         if name.strip()
                     )
-                    print(top_level_dir)
                     assert len(top_level_dir) == 1 or len(top_level_dir.intersection({"audio", "mouths"})) == 2, "Wrong format for inference dir"
                     if len(top_level_dir) == 1:
                         top_level_dir = top_level_dir.pop()

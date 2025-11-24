@@ -21,6 +21,8 @@ pesq
 pystoi
 museval
 torchcodec
+fvcore 
+thop
 
 black
 isort
