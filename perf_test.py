@@ -29,10 +29,13 @@ def main(config):
         device = "cuda" if torch.cuda.is_available() else "cpu"
     else:
         device = config.device
+
     model = instantiate(config.model).to(device).eval()
-    state_dict_size = get_state_dict_size(model)
 
     dummy_input = torch.randn(size=(1, 1, 32000), dtype=torch.float32, device=device, requires_grad=False) 
+    flops, macs = count_flops_macs(model, dummy_input)
+    peak_memory = get_peak_memory(model, dummy_input, device)
+    state_dict_size = get_state_dict_size(model)
 
     if config.get("compile", False):
         assert not config.get("ts_compile", False)
@@ -40,12 +43,9 @@ def main(config):
     elif config.get("ts_compile", False):
         model = torch.jit.trace(model, dummy_input)
 
-    peak_memory = get_peak_memory(model, dummy_input, device)
-
     n_warmup = config.get("time_per_step_n_warmup", 10)
     n_iter = config.get("time_per_step_n_iter", 30)
     time_per_step = count_time_per_step(model, dummy_input, device, n_warmup, n_iter)
-    flops, macs = count_flops_macs(model, dummy_input)
 
     res = {
         "state dict size": bytes_to_readable(state_dict_size),
