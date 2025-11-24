@@ -76,6 +76,8 @@ class MainDataset(BaseDataset):
                 such as label and object path.
         """
         index = []
+
+        top_level_dir = ""
         if dataset_url is not None:
             if dataset_url.startswith('http'):
                 y = yadisk.YaDisk()
@@ -105,7 +107,6 @@ class MainDataset(BaseDataset):
             else:
                 raise RuntimeError("dataset path must be either URL or None")
         
-        top_level_dir = top_level_dir or ""
         if not self.inference_mode:
             audio_path = self.data_root / top_level_dir / "audio" / name 
             mouths_path  =  self.data_root / top_level_dir / "mouths"
