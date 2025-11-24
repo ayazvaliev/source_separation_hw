@@ -9,7 +9,7 @@ decoder_kernel_size: 5
 num_layers: 4
 rate: 2
 use_la: true
-use_ga: true
+use_transformer: true
 num_blocks: 8
 ga_kernel_size: 5
 mhsa_nhead: 8
