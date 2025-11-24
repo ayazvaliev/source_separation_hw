@@ -2,7 +2,7 @@ torch==2.9.0
 torchvision==0.24.0
 torchaudio==2.9.0
 soundfile
-numpy==1.26.4
+numpy
 torch_audiomentations
 tqdm
 matplotlib
