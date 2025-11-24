@@ -21,7 +21,7 @@ pesq
 pystoi
 museval
 sru
-thop
+ptflops
 
 black
 isort

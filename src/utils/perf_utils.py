@@ -1,7 +1,7 @@
 import time
 import torch
 import torch.nn as nn
-from thop import profile
+from ptflops import get_model_complexity_info
 
 
 def bytes_to_readable(n):
@@ -50,6 +50,8 @@ def count_time_per_step(model, dummy_input, device, n_warmup=10, n_iter=30):
 def count_flops_macs(model, dummy_input):
     model.eval()
     with torch.inference_mode():
-        macs, _ = profile(model, inputs=(dummy_input,), verbose=False)
+        macs, _ = get_model_complexity_info(model, dummy_input.shape[1:],
+                                                 as_strings=False,
+                                                 print_per_layer_stat=False)
         
     return 2 * macs, macs

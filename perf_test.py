@@ -33,8 +33,8 @@ def main(config):
     model = instantiate(config.model).to(device).eval()
 
     dummy_input = torch.randn(size=(1, 1, 32000), dtype=torch.float32, device=device, requires_grad=False) 
-    flops, macs = count_flops_macs(model, dummy_input)
     peak_memory = get_peak_memory(model, dummy_input, device)
+    flops, macs = count_flops_macs(model, dummy_input)
     state_dict_size = get_state_dict_size(model)
 
     if config.get("compile", False):
@@ -51,8 +51,8 @@ def main(config):
         "state dict size": bytes_to_readable(state_dict_size),
         "peak memory usage": bytes_to_readable(peak_memory),
         "time_per_step": f"{time_per_step} seconds (was calculaed using n_warmup={n_warmup}, n_iter={n_iter})",
-        "flops": flops,
-        "MACs": macs
+        "FLOPS": flops,
+        "MACs (G / s)": macs / 1e9
     }
 
     for name, val in res.items():
