@@ -56,9 +56,9 @@ def main():
     metrics = [SISNRi("SI-SNRi"), SDRi("SDRi")]
 
     if args.pesq:
-        metrics.append(PESQ("PESQ"))
+        metrics.append(PESQ(16_000, "PESQ"))
     if args.stoi:
-        metrics.append(STOI("STOI"))
+        metrics.append(STOI(16_000, "STOI"))
 
     metrics_tracker = MetricTracker(*[met.name for met in metrics])
     data_dicts = []
