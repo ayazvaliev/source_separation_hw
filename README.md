@@ -4,8 +4,7 @@
   <a href="#installation">Installation</a> •
   <a href="#how-to-use">How To Replicate Our Results</a> •
   <a href="#credits">Credits</a> •
-  <a href="#license">License</a> •
-  <a href="#report">Report</a>
+  <a href="#license">License</a>
 </p>
 
 
@@ -76,9 +75,6 @@ python train.py --config-name=tdanet_finetune data_root=YOUR_SAVE_DIR trainer.fr
 ### Inference and Evaluation
 To launch inference and evaluation pipelines from our pre-trained model we suggest to look at `demo.ipynb` Jupyter Notebook, which uses sample dataset of correct structure as an example.
 
-## Report
-Report can be found [here](https://api.wandb.ai/links/ayazbebrovich-hse-fcs/waatwb97).
-
 ## Credits
 
 1. This repository is based on a [PyTorch Project Template](https://github.com/Blinorot/pytorch_project_template).
@@ -88,5 +84,6 @@ Report can be found [here](https://api.wandb.ai/links/ayazbebrovich-hse-fcs/waat
 ## License
 
 [![License](https://img.shields.io/badge/license-MIT-blue.svg)](/LICENSE)
+
 
 
